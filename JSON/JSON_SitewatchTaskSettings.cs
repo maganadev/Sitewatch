@@ -4,10 +4,6 @@ namespace Sitewatch.JSON
 {
     public class JSON_SitewatchTaskSettings
     {
-        public const string stringAdditions = "additions";
-        public const string stringDeletions = "deletions";
-        public const string stringChanges = "changes";
-
         public string URL { get; set; }
         public string querySelectorQuery { get; set; }
         public string Base64_ScriptToExecute { get; set; }
@@ -33,6 +29,10 @@ namespace Sitewatch.JSON
 
         private void sanitize()
         {
+            URL = URL == null ? "" : URL;
+            querySelectorQuery = querySelectorQuery == null ? "" : querySelectorQuery;
+            Base64_ScriptToExecute = Base64_ScriptToExecute == null ? "" : Base64_ScriptToExecute;
+
             if (SecondsBetweenUpdate <= 0)
             {
                 SecondsBetweenUpdate = 3600;

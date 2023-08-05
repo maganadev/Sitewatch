@@ -6,16 +6,20 @@ namespace Sitewatch.JSON
     {
         public string DiscordWebhookURL { get; set; }
         public string ChromiumBinPath { get; set; }
+        public string TaskFolderPath { get; set; }
 
         private void initDefault()
         {
             DiscordWebhookURL = "";
             ChromiumBinPath = "";
+            TaskFolderPath = "";
         }
 
         private void sanitize()
         {
-            //
+            DiscordWebhookURL = DiscordWebhookURL == null ? "" : DiscordWebhookURL;
+            ChromiumBinPath = ChromiumBinPath == null ? "" : ChromiumBinPath;
+            TaskFolderPath = TaskFolderPath == null ? "" : TaskFolderPath;
         }
 
         public static JSON_Settings getSettings()

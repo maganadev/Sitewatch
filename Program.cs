@@ -1,4 +1,4 @@
-﻿#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+﻿#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
 using DiffLib;
 using NLog;
@@ -20,7 +20,7 @@ namespace Sitewatch
         {
             applyLogConfig();
             PuppeteerSingleton.init().GetAwaiter().GetResult();
-            TimerUp_UpdateTasks(null, null);
+            TimerUp_UpdateTasks(new object(), (ElapsedEventArgs)new object());
 
             //Sleep main thread in an endless loop
             while (true) { Thread.Sleep(1000); }
@@ -28,7 +28,7 @@ namespace Sitewatch
 
         public static async void TimerUp_UpdateTasks(Object source, ElapsedEventArgs e)
         {
-            DirectoryInfo tasksDir = Directory.CreateDirectory("Tasks");
+            DirectoryInfo tasksDir = getTaskDirectory();
             foreach (var taskFile in tasksDir.GetFiles("*.json"))
             {
                 JSON_SitewatchTaskSettings taskSettings = JSON_SitewatchTaskSettings.getSettings(taskFile);
@@ -46,13 +46,13 @@ namespace Sitewatch
                 SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
                 tasks.Add(newName, newTask);
                 logger.Info("Adding task " + newName);
-                Task.Run(() => TimerUp_CheckOnTask(null, null, newTask));
+                Task.Run(() => TimerUp_CheckOnTask(new object(), (ElapsedEventArgs)new object(), newTask));
             }
 
             //Reset timer
             System.Timers.Timer? oldTimer = tasksUpdateTimer;
             tasksUpdateTimer = new System.Timers.Timer(60 * 1000) { AutoReset = false };
-            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(null, null));
+            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(new object(), (ElapsedEventArgs)new object()));
             tasksUpdateTimer.Start();
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
@@ -70,7 +70,7 @@ namespace Sitewatch
             //Reset timer
             System.Timers.Timer? oldTimer = task.timer;
             task.timer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000.0) { AutoReset = false };
-            task.timer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(null, null, task));
+            task.timer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(new object(), (ElapsedEventArgs)new object(), task));
             task.timer.Start();
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
@@ -143,7 +143,7 @@ namespace Sitewatch
             if (didAddContent)
             {
                 await Safety.setArchivedSiteContent(task.name, textAfter);
-                await MessageAlerts.sendDiscordWebhookTextFile(settings.DiscordWebhookURL, task.name+".txt", messageToCraft.ToString());
+                await MessageAlerts.sendDiscordWebhookTextFile(settings.DiscordWebhookURL, task.name + ".txt", messageToCraft.ToString());
             }
         }
 
@@ -236,6 +236,26 @@ namespace Sitewatch
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
             config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
             NLog.LogManager.Configuration = config;
+        }
+
+        public static DirectoryInfo getTaskDirectory()
+        {
+            try
+            {
+                if (settings.TaskFolderPath == string.Empty)
+                {
+                    return Directory.CreateDirectory("Tasks");
+                }
+                else
+                {
+                    return new DirectoryInfo(settings.TaskFolderPath);
+                }
+            }
+            catch (Exception)
+            {
+                logger.Error("Unable to access Task folder");
+                return Directory.CreateDirectory("Tasks");
+            }
         }
     }
 }
