@@ -20,7 +20,6 @@ namespace Sitewatch.JSON
         {
             URL = "";
             querySelectorQuery = "body";
-            additionalHeaders = "";
             SecondsBetweenUpdate = 1000;
         }
 
