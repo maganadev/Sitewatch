@@ -1,11 +1,9 @@
-﻿using DiffLib;
-using Fizzler.Systems.HtmlAgilityPack;
-using HtmlAgilityPack;
+﻿#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+
+using DiffLib;
 using NLog;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using Sitewatch.OOP;
+using Sitewatch.JSON;
 using System.Timers;
 
 namespace Sitewatch
@@ -21,7 +19,7 @@ namespace Sitewatch
         {
             applyLogConfig();
             PuppeteerSingleton.init();
-            TimerUp_UpdateTasks(null,null);
+            TimerUp_UpdateTasks(null, null);
 
             //Sleep main thread in an endless loop
             while (true) { Thread.Sleep(1000); }
@@ -51,9 +49,9 @@ namespace Sitewatch
             }
 
             //Reset timer
-            System.Timers.Timer oldTimer = tasksUpdateTimer;
-            tasksUpdateTimer = new System.Timers.Timer(60 * 1000){AutoReset = false};
-            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(sender, e));
+            System.Timers.Timer? oldTimer = tasksUpdateTimer;
+            tasksUpdateTimer = new System.Timers.Timer(60 * 1000) { AutoReset = false };
+            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(null, null));
             tasksUpdateTimer.Start();
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
@@ -68,9 +66,9 @@ namespace Sitewatch
             HandleComparisons(oldHTMLChunk, newHTMLChunk, task);
 
             //Reset timer
-            System.Timers.Timer oldTimer = task.timer;
-            task.timer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000.0){AutoReset = false};
-            task.timer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(sender, e, task));
+            System.Timers.Timer? oldTimer = task.timer;
+            task.timer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000.0) { AutoReset = false };
+            task.timer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(null, null, task));
             task.timer.Start();
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
@@ -123,7 +121,7 @@ namespace Sitewatch
                 task.failCounter++;
                 logger.Info("Failed to access the site for task " + task.name);
 
-                if(task.failCounter == 5)
+                if (task.failCounter == 5)
                 {
                     message = "Task " + task.name + " has failed 5 times. Check to see what's up.";
                     MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
