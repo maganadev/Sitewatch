@@ -1,6 +1,7 @@
 ﻿#pragma warning disable CS8602 // Dereference of a possibly null reference.
 using NLog.Common;
 using PuppeteerSharp;
+using Sitewatch;
 
 public class PuppeteerSingleton
 {
@@ -10,8 +11,20 @@ public class PuppeteerSingleton
     {
         //Download and setup chrome
         using var browserFetcher = new BrowserFetcher();
-        browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision).GetAwaiter().GetResult();
-        browser = Puppeteer.LaunchAsync(new LaunchOptions { Headless = true }).GetAwaiter().GetResult();
+
+        if (Program.settings.ChromiumBinPath == string.Empty)
+        {
+            browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision).GetAwaiter().GetResult();
+            browser = Puppeteer.LaunchAsync(new LaunchOptions { Headless = true }).GetAwaiter().GetResult();
+        }
+        else
+        {
+            browser = Puppeteer.LaunchAsync(new LaunchOptions {
+                Headless = true,
+                ExecutablePath = Program.settings.ChromiumBinPath
+            }).GetAwaiter().GetResult();
+        }
+
         browser.DefaultWaitForTimeout = 30000;
     }
 

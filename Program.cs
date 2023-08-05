@@ -32,7 +32,7 @@ namespace Sitewatch
             DirectoryInfo tasksDir = Directory.CreateDirectory("Tasks");
             foreach (var taskFile in tasksDir.GetFiles("*.json"))
             {
-                SitewatchTaskSettings taskSettings = SitewatchTaskSettings.getSettings(taskFile);
+                JSON_SitewatchTaskSettings taskSettings = JSON_SitewatchTaskSettings.getSettings(taskFile);
                 if (taskSettings.URL == string.Empty)
                 {
                     continue;
@@ -85,21 +85,21 @@ namespace Sitewatch
             bool wereChanges = wereAdditions || wereDeletions;
             string message = string.Empty;
 
-            if (task.settings.watchFor == "additions" && wereAdditions)
+            if (task.settings.watchFor == JSON_SitewatchTaskSettings.stringAdditions && wereAdditions)
             {
                 Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "There were additions for task " + task.name;
                 MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
-            else if (task.settings.watchFor == "deletions" && wereDeletions)
+            else if (task.settings.watchFor == JSON_SitewatchTaskSettings.stringDeletions && wereDeletions)
             {
                 Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "There were deletions for task " + task.name;
                 MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
-            else if (wereChanges)
+            else if (task.settings.watchFor == JSON_SitewatchTaskSettings.stringChanges && wereDeletions)
             {
                 Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "There were changes for task " + task.name;

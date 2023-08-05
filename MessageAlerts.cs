@@ -18,7 +18,7 @@ public class MessageAlerts
                 client.PostAsync(pURL, new StringContent("{\"content\":\"" + message + "\"}", Encoding.UTF8, "application/json")).GetAwaiter().GetResult();
             }
         }
-        catch (Exception e)
+        catch (Exception)
         {
             //
         }

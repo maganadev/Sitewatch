@@ -3,16 +3,22 @@ using System.Text.Json;
 public class JSON_Settings
 {
     public string DiscordWebhookURL { get; set; }
+    public string ChromiumBinPath { get; set; }
 
     private void initDefault()
     {
         DiscordWebhookURL = "";
+        ChromiumBinPath = "";
     }
 
-    public const string settingsPath = "settings.json";
+    private void sanitize()
+    {
+        //
+    }
 
     public static JSON_Settings getSettings()
     {
+        const string settingsPath = "settings.json";
         var toReturn = new JSON_Settings();
         toReturn.initDefault();
         try
@@ -28,6 +34,7 @@ public class JSON_Settings
             }
         }
         catch (Exception) { }
+        toReturn.sanitize();
         return toReturn;
     }
 }

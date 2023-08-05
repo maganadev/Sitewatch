@@ -9,13 +9,12 @@ namespace Sitewatch
 {
     public class SitewatchTask
     {
-        public SitewatchTaskSettings settings = new SitewatchTaskSettings();
+        public JSON_SitewatchTaskSettings settings = new JSON_SitewatchTaskSettings();
         public string name = "";
-        public bool isStopped = false;
         public int failCounter = 0;
         public System.Timers.Timer timer = new System.Timers.Timer();
 
-        public SitewatchTask(SitewatchTaskSettings pSettings, string pName)
+        public SitewatchTask(JSON_SitewatchTaskSettings pSettings, string pName)
         {
             settings = pSettings;
             name = pName;
