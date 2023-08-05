@@ -29,7 +29,6 @@ namespace Sitewatch
 
         public static async void TimerUp_UpdateTasks(Object source, ElapsedEventArgs e)
         {
-            logger.Info("Updating tasks");
             DirectoryInfo tasksDir = Directory.CreateDirectory("Tasks");
             foreach (var taskFile in tasksDir.GetFiles("*.json"))
             {
@@ -47,55 +46,34 @@ namespace Sitewatch
 
                 SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
                 tasks.Add(newName, newTask);
-                TimerUp_CheckOnTask(null,null,newTask);
+                Task.Run(() => TimerUp_CheckOnTask(null, null, newTask));
             }
 
             //Reset timer
-            //tasksUpdateTimer.Dispose();
             tasksUpdateTimer = new System.Timers.Timer(60 * 1000){AutoReset = false};
             tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(sender, e));
             tasksUpdateTimer.Start();
         }
 
         public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
-        //public static void TimerUp_CheckOnTask(SitewatchTask task)
         {
-            logger.Info("Checking on task " + task.name);
             var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
             var doc = Safety.docFromString(meme.Result);
-            string newHTMLChunk = Safety.QuerySelector(doc, task.settings.querySelectorQuery);
+            string newHTMLChunk = Safety.QuerySelectorAll(doc, task.settings.querySelectorQuery);
             string oldHTMLChunk = Safety.getArchivedSiteContent(task.name);
 
-            handleComparisons(oldHTMLChunk, newHTMLChunk, task);
+            HandleComparisons(oldHTMLChunk, newHTMLChunk, task);
 
             //Reset timer
-            //tasksUpdateTimer.Dispose();
             tasksUpdateTimer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000){AutoReset = false};
             tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(sender, e, task));
             tasksUpdateTimer.Start();
         }
 
-        public static void handleComparisons(string textBefore, string textAfter, SitewatchTask task)
+        public static void HandleComparisons(string textBefore, string textAfter, SitewatchTask task)
         {
-            //For later
-            string message = string.Empty;
-
-            //Check for failure
-            if (textAfter == string.Empty)
+            if (ShouldBailOnInput(textBefore, textAfter, task))
             {
-                task.failCounter++;
-                return;
-            }
-            else
-            {
-                task.failCounter = 0;
-            }
-
-            if (textBefore == string.Empty)
-            {
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                message = "Setting initial content for task " + task.name;
-                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
 
@@ -105,6 +83,7 @@ namespace Sitewatch
             bool wereAdditions = additions > 0;
             bool wereDeletions = deletions > 0;
             bool wereChanges = wereAdditions || wereDeletions;
+            string message = string.Empty;
 
             if (task.settings.watchFor == "additions" && wereAdditions)
             {
@@ -127,6 +106,46 @@ namespace Sitewatch
                 MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
+        }
+
+        public static bool ShouldBailOnInput(string textBefore, string textAfter, SitewatchTask task)
+        {
+            string message = string.Empty;
+
+            //Check for failure
+            if (textAfter == string.Empty)
+            {
+                task.failCounter++;
+                logger.Info("Failed to access the site for task " + task.name);
+
+                if(task.failCounter == 5)
+                {
+                    message = "Task " + task.name + " has failed 5 times. Check to see what's up.";
+                    MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
+                }
+
+                return true;
+            }
+            else
+            {
+                if (task.failCounter >= 5)
+                {
+                    message = "Task " + task.name + " has succeeded and come back to life.";
+                    MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
+                }
+
+                task.failCounter = 0;
+            }
+
+            if (textBefore == string.Empty)
+            {
+                Safety.setArchivedSiteContent(task.name, textAfter);
+                message = "Setting initial content for task " + task.name;
+                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
+                return true;
+            }
+
+            return false;
         }
 
         public static void getChangeCount(string textBefore, string textAfter, out int pAdditions, out int pDeletions)

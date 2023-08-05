@@ -1,22 +1,27 @@
 ﻿using Fizzler.Systems.HtmlAgilityPack;
 using HtmlAgilityPack;
+using System.Text;
 
 namespace Sitewatch
 {
     public class Safety
     {
-        public static string QuerySelector(HtmlDocument doc, string query)
+        public static string QuerySelectorAll(HtmlDocument doc, string query)
         {
-            string toReturn = string.Empty;
+            StringBuilder toReturn = new StringBuilder();
             try
             {
-                toReturn = doc.DocumentNode.QuerySelector(query).OuterHtml;
+                var nodes = doc.DocumentNode.QuerySelectorAll(query);
+                foreach(var node in nodes )
+                {
+                    toReturn.Append(node.OuterHtml);
+                }
+                return toReturn.ToString();
             }
             catch(Exception)
             {
-                //
+                return string.Empty;
             }
-            return toReturn;
         }
 
         public static HtmlDocument docFromString(string pContents)

@@ -10,9 +10,17 @@ public class MessageAlerts
     public static void sendDiscordWebhookMessage(string pURL, string message)
     {
         Program.logger.Info(message);
-        using (HttpClient client = new HttpClient())
+        try
         {
-            client.PostAsync(pURL, new StringContent("{\"content\":\""+message+"\"}", Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); 
+            using (HttpClient client = new HttpClient())
+            {
+                client.Timeout = TimeSpan.FromSeconds(5);
+                client.PostAsync(pURL, new StringContent("{\"content\":\"" + message + "\"}", Encoding.UTF8, "application/json")).GetAwaiter().GetResult();
+            }
+        }
+        catch (Exception e)
+        {
+            //
         }
     }
 }
