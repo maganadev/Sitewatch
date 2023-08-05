@@ -28,12 +28,13 @@ public class PuppeteerSingleton
         browser.DefaultWaitForTimeout = 30000;
     }
 
-    public static async Task<string> getPageSource(string url, string scriptToExecute)
+    public static async Task<string> getPageSource(string url, int secondsToWait, string scriptToExecute)
     {
         try
         {
             var page = await browser.NewPageAsync();
             await page.GoToAsync(url);
+            await page.WaitForTimeoutAsync(secondsToWait*1000);
             if(scriptToExecute != string.Empty)
             {
                 await page.EvaluateExpressionAsync(scriptToExecute);

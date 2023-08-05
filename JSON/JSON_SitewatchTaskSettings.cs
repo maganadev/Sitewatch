@@ -16,6 +16,7 @@ namespace Sitewatch.JSON
         public bool watchForChanges { get; set; }
         public bool watchForNoChanges { get; set; }
         public int SecondsBetweenUpdate { get; set; }
+        public int SecondsAfterPageLoad { get; set; }
 
         public void initDefault()
         {
@@ -27,6 +28,7 @@ namespace Sitewatch.JSON
             watchForChanges = false;
             watchForNoChanges = false;
             SecondsBetweenUpdate = 3600;
+            SecondsAfterPageLoad = 1;
         }
 
         private void sanitize()
@@ -34,6 +36,10 @@ namespace Sitewatch.JSON
             if (SecondsBetweenUpdate <= 0)
             {
                 SecondsBetweenUpdate = 3600;
+            }
+            if (SecondsAfterPageLoad <= 0)
+            {
+                SecondsAfterPageLoad = 1;
             }
         }
 
@@ -44,7 +50,12 @@ namespace Sitewatch.JSON
             try
             {
                 JSON_SitewatchTaskSettings? temp = JsonSerializer.Deserialize<JSON_SitewatchTaskSettings>(File.ReadAllText(pFileInfo.FullName));
-                toReturn = temp != null ? temp : toReturn;
+                if (temp != null)
+                {
+                    temp.sanitize();
+                    File.WriteAllText(pFileInfo.FullName, JsonSerializer.Serialize(temp, new JsonSerializerOptions { WriteIndented = true }));
+                    toReturn = temp;
+                }
             }
             catch (Exception) { }
             toReturn.sanitize();
