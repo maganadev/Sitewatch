@@ -4,6 +4,7 @@ using HtmlAgilityPack;
 using NLog;
 using System.Collections.Generic;
 using System.Text;
+using System.Timers;
 
 namespace Sitewatch
 {
@@ -18,13 +19,13 @@ namespace Sitewatch
         {
             applyLogConfig();
             PuppeteerSingleton.init();
-            TimerUp_UpdateTasks();
+            TimerUp_UpdateTasks(null,null);
 
             //Sleep main thread in an endless loop
             while (true) { Thread.Sleep(1000); }
         }
 
-        public static void TimerUp_UpdateTasks()
+        public static async void TimerUp_UpdateTasks(Object source, ElapsedEventArgs e)
         {
             DirectoryInfo tasksDir = Directory.CreateDirectory("Tasks");
             foreach (var taskFile in tasksDir.GetFiles("*.json"))
@@ -44,8 +45,11 @@ namespace Sitewatch
                 addNewTask(newName, new SitewatchTask(taskSettings, newName));
             }
 
-            tasksUpdateTimer.Stop();
-            tasksUpdateTimer.
+            //Reset timer
+            tasksUpdateTimer.Dispose();
+            tasksUpdateTimer = new System.Timers.Timer(60 * 1000);
+            tasksUpdateTimer.Elapsed += new ElapsedEventHandler(TimerUp_UpdateTasks);
+            tasksUpdateTimer.Start();
         }
 
         public static void TimerUp_CheckOnTask(SitewatchTask task)
