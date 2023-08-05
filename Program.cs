@@ -19,7 +19,7 @@ namespace Sitewatch
         public static void Main(string[] args)
         {
             applyLogConfig();
-            PuppeteerSingleton.init();
+            PuppeteerSingleton.init().GetAwaiter().GetResult();
             TimerUp_UpdateTasks(null, null);
 
             //Sleep main thread in an endless loop

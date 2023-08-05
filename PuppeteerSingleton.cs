@@ -5,24 +5,26 @@ using Sitewatch;
 
 public class PuppeteerSingleton
 {
-    public static IBrowser? browser = null;
+    private static IBrowser? browser = null;
+    private static Semaphore pool = new Semaphore(4,4);
 
-    public static void init()
+    public static async Task init()
     {
         //Download and setup chrome
         using var browserFetcher = new BrowserFetcher();
 
         if (Program.settings.ChromiumBinPath == string.Empty)
         {
-            browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision).GetAwaiter().GetResult();
-            browser = Puppeteer.LaunchAsync(new LaunchOptions { Headless = true }).GetAwaiter().GetResult();
+            await browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision);
+            browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
         }
         else
         {
-            browser = Puppeteer.LaunchAsync(new LaunchOptions {
+            browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            {
                 Headless = true,
                 ExecutablePath = Program.settings.ChromiumBinPath
-            }).GetAwaiter().GetResult();
+            });
         }
 
         browser.DefaultWaitForTimeout = 30000;
@@ -30,22 +32,27 @@ public class PuppeteerSingleton
 
     public static async Task<string> getPageSource(string url, int secondsToWait, string scriptToExecute)
     {
+        string toReturn = string.Empty;
+        pool.WaitOne();
+
         try
         {
             var page = await browser.NewPageAsync();
             await page.GoToAsync(url);
-            await page.WaitForTimeoutAsync(secondsToWait*1000);
-            if(scriptToExecute != string.Empty)
+            await page.WaitForTimeoutAsync(secondsToWait * 1000);
+            if (scriptToExecute != string.Empty)
             {
                 await page.EvaluateExpressionAsync(scriptToExecute);
             }
-            var content = await page.GetContentAsync();
+            toReturn = await page.GetContentAsync();
             await page.CloseAsync();
-            return content;
         }
         catch (Exception)
         {
-            return string.Empty;
+            //
         }
+
+        pool.Release();
+        return toReturn;
     }
 }
