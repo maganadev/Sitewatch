@@ -52,25 +52,6 @@ namespace Sitewatch
             tasksUpdateTimer.Start();
         }
 
-        public static void TimerUp_CheckOnTask(SitewatchTask task)
-        {
-            var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
-            var doc = Safety.docFromString(meme.Result);
-            string newHTMLChunk = Safety.QuerySelector(doc, task.settings.querySelectorQuery);
-            string oldHTMLChunk = Safety.getArchivedSiteContent(task.name);
-
-            if (newHTMLChunk == string.Empty)
-            {
-                logger.Log(LogLevel.Warn, "Unable to get website content for site " + task.settings.URL);
-            }
-            if (oldHTMLChunk == string.Empty)
-            {
-                logger.Log(LogLevel.Info, "Skipping because we don't know what the website looked like before");
-            }
-
-            handleComparisons(oldHTMLChunk, newHTMLChunk, task);
-        }
-
         public static void handleComparisons(string textBefore, string textAfter, SitewatchTask task)
         {
             string message = string.Empty;
@@ -124,15 +105,26 @@ namespace Sitewatch
             }
         }
 
-        public static void applyLogConfig()
+        public static void TimerUp_CheckOnTask(SitewatchTask task)
         {
-            var config = new NLog.Config.LoggingConfiguration();
-            var logfile = new NLog.Targets.FileTarget("logfile") { FileName = "log.txt" };
-            var logconsole = new NLog.Targets.ConsoleTarget("logconsole");
-            config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
-            config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
-            NLog.LogManager.Configuration = config;
+            var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
+            var doc = Safety.docFromString(meme.Result);
+            string newHTMLChunk = Safety.QuerySelector(doc, task.settings.querySelectorQuery);
+            string oldHTMLChunk = Safety.getArchivedSiteContent(task.name);
+
+            if (newHTMLChunk == string.Empty)
+            {
+                logger.Log(LogLevel.Warn, "Unable to get website content for site " + task.settings.URL);
+            }
+            if (oldHTMLChunk == string.Empty)
+            {
+                logger.Log(LogLevel.Info, "Skipping because we don't know what the website looked like before");
+            }
+
+            handleComparisons(oldHTMLChunk, newHTMLChunk, task);
         }
+
+       
 
         public static void addNewTask(string newTaskName, SitewatchTask pTask)
         {
@@ -162,6 +154,16 @@ namespace Sitewatch
             }
             pAdditions = additions;
             pDeletions = deletions;
+        }
+
+        public static void applyLogConfig()
+        {
+            var config = new NLog.Config.LoggingConfiguration();
+            var logfile = new NLog.Targets.FileTarget("logfile") { FileName = "log.txt" };
+            var logconsole = new NLog.Targets.ConsoleTarget("logconsole");
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
+            config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
+            NLog.LogManager.Configuration = config;
         }
     }
 }
