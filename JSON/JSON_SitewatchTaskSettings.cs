@@ -10,7 +10,6 @@ namespace Sitewatch.JSON
 
         public string URL { get; set; }
         public string querySelectorQuery { get; set; }
-        public string additionalHeaders { get; set; }
         public bool watchForPureAdditions { get; set; }
         public bool watchForPureDeletions { get; set; }
         public bool watchForChanges { get; set; }
