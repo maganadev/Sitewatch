@@ -39,11 +39,11 @@ public class PuppeteerSingleton
         {
             var page = await browser.NewPageAsync();
             await page.GoToAsync(url);
-            await page.WaitForTimeoutAsync(secondsToWait * 1000);
             if (scriptToExecute != string.Empty)
             {
                 await page.EvaluateExpressionAsync(scriptToExecute);
             }
+            await page.WaitForTimeoutAsync(secondsToWait * 1000);
             toReturn = await page.GetContentAsync();
             await page.CloseAsync();
         }

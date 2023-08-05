@@ -62,7 +62,7 @@ namespace Sitewatch
         public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
         {
             string scriptToExecute = Safety.GetUTF8FromBase64(task.settings.Base64_ScriptToExecute);
-            string pageSource = await PuppeteerSingleton.getPageSource(task.settings.URL, task.settings.SecondsAfterPageLoad, scriptToExecute);
+            string pageSource = await PuppeteerSingleton.getPageSource(task.settings.URL, task.settings.SecondsToWaitAfterScriptExecution, scriptToExecute);
             var doc = Safety.docFromString(pageSource);
             string newHTMLChunk = Safety.QuerySelectorAll(doc, task.settings.querySelectorQuery);
             string oldHTMLChunk = await Safety.getArchivedSiteContent(task.name);
@@ -71,7 +71,7 @@ namespace Sitewatch
 
             //Reset timer
             System.Timers.Timer? oldTimer = task.timer;
-            task.timer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000.0) { AutoReset = false };
+            task.timer = new System.Timers.Timer(task.settings.SecondsToWaitBeforeEachCheck * 1000.0) { AutoReset = false };
             task.timer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(null, null, task));
             task.timer.Start();
             if (oldTimer != null) { oldTimer.Dispose(); }

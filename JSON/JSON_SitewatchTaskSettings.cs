@@ -13,8 +13,8 @@ namespace Sitewatch.JSON
         public bool watchForPureDeletions { get; set; }
         public bool watchForChanges { get; set; }
         public bool watchForNoChanges { get; set; }
-        public int SecondsBetweenUpdate { get; set; }
-        public int SecondsAfterPageLoad { get; set; }
+        public int SecondsToWaitBeforeEachCheck { get; set; }
+        public int SecondsToWaitAfterScriptExecution { get; set; }
 
         public void initDefault()
         {
@@ -25,8 +25,8 @@ namespace Sitewatch.JSON
             watchForPureDeletions = false;
             watchForChanges = false;
             watchForNoChanges = false;
-            SecondsBetweenUpdate = 3600;
-            SecondsAfterPageLoad = 1;
+            SecondsToWaitBeforeEachCheck = 3600;
+            SecondsToWaitAfterScriptExecution = 1;
         }
 
         private void sanitize()
@@ -35,13 +35,13 @@ namespace Sitewatch.JSON
             querySelectorQuery = querySelectorQuery == null ? "" : querySelectorQuery;
             Base64_ScriptToExecute = Base64_ScriptToExecute == null ? "" : Base64_ScriptToExecute;
 
-            if (SecondsBetweenUpdate <= 0)
+            if (SecondsToWaitBeforeEachCheck <= 0)
             {
-                SecondsBetweenUpdate = 3600;
+                SecondsToWaitBeforeEachCheck = 3600;
             }
-            if (SecondsAfterPageLoad <= 0)
+            if (SecondsToWaitAfterScriptExecution <= 0)
             {
-                SecondsAfterPageLoad = 1;
+                SecondsToWaitAfterScriptExecution = 1;
             }
         }
 
