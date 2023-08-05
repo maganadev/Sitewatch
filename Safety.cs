@@ -1,5 +1,6 @@
 ﻿using Fizzler.Systems.HtmlAgilityPack;
 using HtmlAgilityPack;
+using System.Buffers.Text;
 using System.Text;
 
 namespace Sitewatch
@@ -77,6 +78,21 @@ namespace Sitewatch
                 return string1.Substring(0, newLength);
             }
             return string1;
+        }
+
+        public static string GetUTF8FromBase64(string b64encoded)
+        {
+            string toReturn = string.Empty;
+            try
+            {
+                byte[] data = Convert.FromBase64String(b64encoded);
+                toReturn = System.Text.Encoding.UTF8.GetString(data);
+            }
+            catch (Exception)
+            {
+                //
+            }
+            return toReturn;
         }
     }
 }

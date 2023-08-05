@@ -10,6 +10,7 @@ namespace Sitewatch.JSON
 
         public string URL { get; set; }
         public string querySelectorQuery { get; set; }
+        public string Base64_ScriptToExecute { get; set; }
         public bool watchForPureAdditions { get; set; }
         public bool watchForPureDeletions { get; set; }
         public bool watchForChanges { get; set; }
@@ -20,7 +21,12 @@ namespace Sitewatch.JSON
         {
             URL = "";
             querySelectorQuery = "body";
-            SecondsBetweenUpdate = 1000;
+            Base64_ScriptToExecute = "";
+            watchForPureAdditions = false;
+            watchForPureDeletions = false;
+            watchForChanges = false;
+            watchForNoChanges = false;
+            SecondsBetweenUpdate = 3600;
         }
 
         private void sanitize()

@@ -59,7 +59,8 @@ namespace Sitewatch
 
         public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
         {
-            string pageSource = await PuppeteerSingleton.getPageSource(task.settings.URL);
+            string scriptToExecute = Safety.GetUTF8FromBase64(task.settings.Base64_ScriptToExecute);
+            string pageSource = await PuppeteerSingleton.getPageSource(task.settings.URL, scriptToExecute);
             var doc = Safety.docFromString(pageSource);
             string newHTMLChunk = Safety.QuerySelectorAll(doc, task.settings.querySelectorQuery);
             string oldHTMLChunk = await Safety.getArchivedSiteContent(task.name);
