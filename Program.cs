@@ -12,33 +12,59 @@ namespace Sitewatch
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static JSON_Settings settings = JSON_Settings.getSettings();
         public static Dictionary<string, SitewatchTask> tasks = new Dictionary<string, SitewatchTask>();
-        public static Mutex TaskListMutex = new Mutex();
+        public static System.Timers.Timer tasksUpdateTimer = new System.Timers.Timer();
 
         public static void Main(string[] args)
         {
             applyLogConfig();
-            updateTasks();
             PuppeteerSingleton.init();
+            TimerUp_UpdateTasks();
 
-            foreach (var taskPair in tasks)
+            //Sleep main thread in an endless loop
+            while (true) { Thread.Sleep(1000); }
+        }
+
+        public static void TimerUp_UpdateTasks()
+        {
+            DirectoryInfo tasksDir = Directory.CreateDirectory("Tasks");
+            foreach (var taskFile in tasksDir.GetFiles("*.json"))
             {
-                SitewatchTask task = taskPair.Value;
-                var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
-                var doc = Safety.docFromString(meme.Result);
-                string newHTMLChunk = Safety.QuerySelector(doc, task.settings.querySelectorQuery);
-                string oldHTMLChunk = Safety.getArchivedSiteContent(taskPair.Key);
-
-                if (newHTMLChunk == string.Empty)
+                SitewatchTaskSettings taskSettings = SitewatchTaskSettings.getSettings(taskFile);
+                if (taskSettings.URL == string.Empty)
                 {
-                    logger.Log(LogLevel.Warn, "Unable to get website content for site " + task.settings.URL);
-                }
-                if (oldHTMLChunk == string.Empty)
-                {
-                    logger.Log(LogLevel.Info, "Skipping because we don't know what the website looked like before");
+                    continue;
                 }
 
-                handleComparisons(oldHTMLChunk, newHTMLChunk, task);
+                string newName = Safety.TruncateString(taskFile.Name, taskFile.Extension);
+                if (tasks.ContainsKey(newName))
+                {
+                    continue;
+                }
+
+                addNewTask(newName, new SitewatchTask(taskSettings, newName));
             }
+
+            tasksUpdateTimer.Stop();
+            tasksUpdateTimer.
+        }
+
+        public static void TimerUp_CheckOnTask(SitewatchTask task)
+        {
+            var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
+            var doc = Safety.docFromString(meme.Result);
+            string newHTMLChunk = Safety.QuerySelector(doc, task.settings.querySelectorQuery);
+            string oldHTMLChunk = Safety.getArchivedSiteContent(task.name);
+
+            if (newHTMLChunk == string.Empty)
+            {
+                logger.Log(LogLevel.Warn, "Unable to get website content for site " + task.settings.URL);
+            }
+            if (oldHTMLChunk == string.Empty)
+            {
+                logger.Log(LogLevel.Info, "Skipping because we don't know what the website looked like before");
+            }
+
+            handleComparisons(oldHTMLChunk, newHTMLChunk, task);
         }
 
         public static void handleComparisons(string textBefore, string textAfter, SitewatchTask task)
@@ -104,32 +130,12 @@ namespace Sitewatch
             NLog.LogManager.Configuration = config;
         }
 
-        public static void updateTasks()
+        public static void addNewTask(string newTaskName, SitewatchTask pTask)
         {
-            //Lock
-            TaskListMutex.WaitOne();
-
-            DirectoryInfo tasksDir = Directory.CreateDirectory("Tasks");
-            foreach (var taskFile in tasksDir.GetFiles("*.json"))
-            {
-                SitewatchTaskSettings taskSettings = SitewatchTaskSettings.getSettings(taskFile);
-                if (taskSettings.URL == string.Empty)
-                {
-                    continue;
-                }
-
-                string newName = Safety.TruncateString(taskFile.Name,taskFile.Extension);
-                if (tasks.ContainsKey(newName))
-                {
-                    continue;
-                }
-
-                tasks.Add(newName, new SitewatchTask(taskSettings, newName));
-            }
-
-            //Unlock
-            TaskListMutex.ReleaseMutex();
+            tasks.Add(newTaskName, pTask);
         }
+
+        
 
         public static void getChangeCount(string textBefore, string textAfter, out int pAdditions, out int pDeletions)
         {
