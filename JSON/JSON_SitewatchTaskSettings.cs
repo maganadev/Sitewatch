@@ -11,7 +11,10 @@ namespace Sitewatch.JSON
         public string URL { get; set; }
         public string querySelectorQuery { get; set; }
         public string additionalHeaders { get; set; }
-        public string watchFor { get; set; }
+        public bool watchForPureAdditions { get; set; }
+        public bool watchForPureDeletions { get; set; }
+        public bool watchForChanges { get; set; }
+        public bool watchForNoChanges { get; set; }
         public int SecondsBetweenUpdate { get; set; }
 
         public void initDefault()
@@ -19,7 +22,6 @@ namespace Sitewatch.JSON
             URL = "";
             querySelectorQuery = "body";
             additionalHeaders = "";
-            watchFor = stringChanges;
             SecondsBetweenUpdate = 1000;
         }
 
@@ -28,14 +30,6 @@ namespace Sitewatch.JSON
             if (SecondsBetweenUpdate <= 0)
             {
                 SecondsBetweenUpdate = 3600;
-            }
-            if (!(
-                watchFor == stringAdditions ||
-                watchFor == stringDeletions ||
-                watchFor == stringChanges
-                ))
-            {
-                watchFor = stringChanges;
             }
         }
 

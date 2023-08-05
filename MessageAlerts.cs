@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 public class MessageAlerts
 {
-    public static void sendDiscordWebhookMessage(string pURL, string message)
+    public static async Task sendDiscordWebhookMessage(string pURL, string message)
     {
         Program.logger.Info(message);
         try
@@ -15,7 +15,28 @@ public class MessageAlerts
             using (HttpClient client = new HttpClient())
             {
                 client.Timeout = TimeSpan.FromSeconds(5);
-                client.PostAsync(pURL, new StringContent("{\"content\":\"" + message + "\"}", Encoding.UTF8, "application/json")).GetAwaiter().GetResult();
+                await client.PostAsync(pURL, new StringContent("{\"content\":\"" + message + "\"}", Encoding.UTF8, "application/json"));
+                client.Dispose();
+            }
+        }
+        catch (Exception)
+        {
+            //
+        }
+    }
+
+    public static async Task sendDiscordWebhookTextFile(string pURL, string message)
+    {
+        Program.logger.Info(message);
+        try
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                MultipartFormDataContent form = new MultipartFormDataContent();
+                var file_bytes = Encoding.UTF8.GetBytes(message);
+                form.Add(new ByteArrayContent(file_bytes, 0, file_bytes.Length), "Document", "file.txt");
+                await client.PostAsync(pURL, form);
+                client.Dispose();
             }
         }
         catch (Exception)

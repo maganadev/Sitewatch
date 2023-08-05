@@ -38,14 +38,14 @@ namespace Sitewatch
             return toReturn;
         }
 
-        public static string getArchivedSiteContent(string pName)
+        public static async Task<string> getArchivedSiteContent(string pName)
         {
             string toReturn = string.Empty;
             try
             {
                 DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
                 string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
-                toReturn = File.ReadAllText(filepath);
+                toReturn = await File.ReadAllTextAsync(filepath);
             }
             catch(Exception)
             {
@@ -54,13 +54,13 @@ namespace Sitewatch
             return toReturn;
         }
 
-        public static void setArchivedSiteContent(string pName, string pContents)
+        public static async Task setArchivedSiteContent(string pName, string pContents)
         {
             try
             {
                 DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
                 string filepath = Path.Combine(tasksDir.FullName, pName+".content");
-                File.WriteAllText(filepath, pContents);
+                await File.WriteAllTextAsync(filepath, pContents);
             }
             catch (Exception)
             {

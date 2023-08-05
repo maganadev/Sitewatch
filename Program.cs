@@ -5,6 +5,7 @@ using NLog;
 using Sitewatch.OOP;
 using Sitewatch.JSON;
 using System.Timers;
+using System.Text;
 
 namespace Sitewatch
 {
@@ -58,10 +59,10 @@ namespace Sitewatch
 
         public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
         {
-            var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
-            var doc = Safety.docFromString(meme.Result);
+            string pageSource = await PuppeteerSingleton.getPageSource(task.settings.URL);
+            var doc = Safety.docFromString(pageSource);
             string newHTMLChunk = Safety.QuerySelectorAll(doc, task.settings.querySelectorQuery);
-            string oldHTMLChunk = Safety.getArchivedSiteContent(task.name);
+            string oldHTMLChunk = await Safety.getArchivedSiteContent(task.name);
 
             HandleComparisons(oldHTMLChunk, newHTMLChunk, task);
 
@@ -73,45 +74,79 @@ namespace Sitewatch
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
 
-        public static void HandleComparisons(string textBefore, string textAfter, SitewatchTask task)
+        public static async void HandleComparisons(string textBefore, string textAfter, SitewatchTask task)
         {
-            if (ShouldBailOnInput(textBefore, textAfter, task))
+            if (await ShouldBailOnInput(textBefore, textAfter, task))
             {
                 return;
             }
 
-            int additions = 0;
-            int deletions = 0;
-            getChangeCount(textBefore, textAfter, out additions, out deletions);
-            bool wereAdditions = additions > 0;
-            bool wereDeletions = deletions > 0;
-            bool wereChanges = wereAdditions || wereDeletions;
-            string message = string.Empty;
+            List<TextDiff> pureAdditions = new List<TextDiff>();
+            List<TextDiff> pureDeletions = new List<TextDiff>();
+            List<TextDiff> changes = new List<TextDiff>();
+            List<TextDiff> noChanges = new List<TextDiff>();
+            getChanges(textBefore, textAfter, out pureAdditions, out pureDeletions, out changes, out noChanges);
 
-            if (task.settings.watchFor == JSON_SitewatchTaskSettings.stringAdditions && wereAdditions)
+            StringBuilder messageToCraft = new StringBuilder();
+            messageToCraft.Append(task.name);
+            messageToCraft.Append("\n////////Updates:\n\n\n");
+            bool didAddContent = false;
+
+            if (task.settings.watchForPureAdditions)
             {
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                message = "There were additions for task " + task.name;
-                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
-                return;
+                foreach (TextDiff diff in pureAdditions)
+                {
+                    messageToCraft.Append("////////Addition of:\n");
+                    messageToCraft.Append(diff.textAfter);
+                    messageToCraft.Append("\n\n\n");
+
+                    didAddContent = true;
+                }
             }
-            else if (task.settings.watchFor == JSON_SitewatchTaskSettings.stringDeletions && wereDeletions)
+            if (task.settings.watchForPureDeletions)
             {
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                message = "There were deletions for task " + task.name;
-                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
-                return;
+                foreach (TextDiff diff in pureDeletions)
+                {
+                    messageToCraft.Append("////////Deletion of:\n");
+                    messageToCraft.Append(diff.textBefore);
+                    messageToCraft.Append("\n\n\n");
+
+                    didAddContent = true;
+                }
             }
-            else if (task.settings.watchFor == JSON_SitewatchTaskSettings.stringChanges && wereDeletions)
+            if (task.settings.watchForChanges)
             {
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                message = "There were changes for task " + task.name;
-                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
-                return;
+                foreach (TextDiff diff in changes)
+                {
+                    messageToCraft.Append("////////Change of:\n");
+                    messageToCraft.Append(diff.textBefore);
+                    messageToCraft.Append("\nInto:\n");
+                    messageToCraft.Append(diff.textAfter);
+                    messageToCraft.Append("\n\n\n");
+
+                    didAddContent = true;
+                }
+            }
+            if (task.settings.watchForNoChanges)
+            {
+                foreach (TextDiff diff in noChanges)
+                {
+                    messageToCraft.Append("////////No change to:\n");
+                    messageToCraft.Append(diff.textBefore);
+                    messageToCraft.Append("\n\n\n");
+
+                    didAddContent = true;
+                }
+            }
+
+            if (didAddContent)
+            {
+                await Safety.setArchivedSiteContent(task.name, textAfter);
+                await MessageAlerts.sendDiscordWebhookTextFile(settings.DiscordWebhookURL, messageToCraft.ToString());
             }
         }
 
-        public static bool ShouldBailOnInput(string textBefore, string textAfter, SitewatchTask task)
+        public static async Task<bool> ShouldBailOnInput(string textBefore, string textAfter, SitewatchTask task)
         {
             string message = string.Empty;
 
@@ -124,7 +159,7 @@ namespace Sitewatch
                 if (task.failCounter == 5)
                 {
                     message = "Task " + task.name + " has failed 5 times. Check to see what's up.";
-                    MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
+                    await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 }
 
                 return true;
@@ -134,7 +169,7 @@ namespace Sitewatch
                 if (task.failCounter >= 5)
                 {
                     message = "Task " + task.name + " has succeeded and come back to life.";
-                    MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
+                    await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 }
 
                 task.failCounter = 0;
@@ -142,36 +177,54 @@ namespace Sitewatch
 
             if (textBefore == string.Empty)
             {
-                Safety.setArchivedSiteContent(task.name, textAfter);
+                await Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "Setting initial content for task " + task.name;
-                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
+                await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return true;
             }
 
             return false;
         }
 
-        public static void getChangeCount(string textBefore, string textAfter, out int pAdditions, out int pDeletions)
+        public static void getChanges(
+            string textBefore,
+            string textAfter,
+            out List<TextDiff> pPureAdditions,
+            out List<TextDiff> pPureDeletions,
+            out List<TextDiff> pChanges,
+            out List<TextDiff> pNoChanges
+            )
         {
+            pPureAdditions = new List<TextDiff>();
+            pPureDeletions = new List<TextDiff>();
+            pChanges = new List<TextDiff>();
+            pNoChanges = new List<TextDiff>();
             IEnumerable<DiffSection> sections = Diff.CalculateSections(textBefore.ToCharArray(), textAfter.ToCharArray());
-            int additions = 0;
-            int deletions = 0;
+            int p1 = 0;
+            int p2 = 0;
             foreach (var section in sections)
             {
-                if (!section.IsMatch)
+                string beforeText = textBefore.Substring(p1, section.LengthInCollection1);
+                string afterText = textAfter.Substring(p2, section.LengthInCollection2);
+                p1 += section.LengthInCollection1;
+                p2 += section.LengthInCollection2;
+                TextDiff toAdd = new TextDiff(beforeText, afterText);
+                switch (toAdd.type)
                 {
-                    if (section.LengthInCollection2 > 0)
-                    {
-                        additions++;
-                    }
-                    if (section.LengthInCollection1 > 0)
-                    {
-                        deletions++;
-                    }
+                    case DiffType.PureAddition:
+                        pPureAdditions.Add(toAdd);
+                        break;
+                    case DiffType.PureDeletion:
+                        pPureDeletions.Add(toAdd);
+                        break;
+                    case DiffType.Change:
+                        pChanges.Add(toAdd);
+                        break;
+                    case DiffType.NoChange:
+                        pNoChanges.Add(toAdd);
+                        break;
                 }
             }
-            pAdditions = additions;
-            pDeletions = deletions;
         }
 
         public static void applyLogConfig()
