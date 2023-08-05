@@ -4,6 +4,8 @@ using HtmlAgilityPack;
 using NLog;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace Sitewatch
@@ -27,6 +29,7 @@ namespace Sitewatch
 
         public static async void TimerUp_UpdateTasks(Object source, ElapsedEventArgs e)
         {
+            logger.Info("Updating tasks");
             DirectoryInfo tasksDir = Directory.CreateDirectory("Tasks");
             foreach (var taskFile in tasksDir.GetFiles("*.json"))
             {
@@ -42,18 +45,39 @@ namespace Sitewatch
                     continue;
                 }
 
-                addNewTask(newName, new SitewatchTask(taskSettings, newName));
+                SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
+                tasks.Add(newName, newTask);
+                TimerUp_CheckOnTask(null,null,newTask);
             }
 
             //Reset timer
-            tasksUpdateTimer.Dispose();
-            tasksUpdateTimer = new System.Timers.Timer(60 * 1000);
-            tasksUpdateTimer.Elapsed += new ElapsedEventHandler(TimerUp_UpdateTasks);
+            //tasksUpdateTimer.Dispose();
+            tasksUpdateTimer = new System.Timers.Timer(60 * 1000){AutoReset = false};
+            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(sender, e));
+            tasksUpdateTimer.Start();
+        }
+
+        public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
+        //public static void TimerUp_CheckOnTask(SitewatchTask task)
+        {
+            logger.Info("Checking on task " + task.name);
+            var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
+            var doc = Safety.docFromString(meme.Result);
+            string newHTMLChunk = Safety.QuerySelector(doc, task.settings.querySelectorQuery);
+            string oldHTMLChunk = Safety.getArchivedSiteContent(task.name);
+
+            handleComparisons(oldHTMLChunk, newHTMLChunk, task);
+
+            //Reset timer
+            //tasksUpdateTimer.Dispose();
+            tasksUpdateTimer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000){AutoReset = false};
+            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(sender, e, task));
             tasksUpdateTimer.Start();
         }
 
         public static void handleComparisons(string textBefore, string textAfter, SitewatchTask task)
         {
+            //For later
             string message = string.Empty;
 
             //Check for failure
@@ -71,7 +95,7 @@ namespace Sitewatch
             {
                 Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "Setting initial content for task " + task.name;
-                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
 
@@ -86,52 +110,24 @@ namespace Sitewatch
             {
                 Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "There were additions for task " + task.name;
-                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
             else if (task.settings.watchFor == "deletions" && wereDeletions)
             {
                 Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "There were deletions for task " + task.name;
-                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
             else if (wereChanges)
             {
                 Safety.setArchivedSiteContent(task.name, textAfter);
                 message = "There were changes for task " + task.name;
-                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return;
             }
         }
-
-        public static void TimerUp_CheckOnTask(SitewatchTask task)
-        {
-            var meme = PuppeteerSingleton.getPageSource(task.settings.URL);
-            var doc = Safety.docFromString(meme.Result);
-            string newHTMLChunk = Safety.QuerySelector(doc, task.settings.querySelectorQuery);
-            string oldHTMLChunk = Safety.getArchivedSiteContent(task.name);
-
-            if (newHTMLChunk == string.Empty)
-            {
-                logger.Log(LogLevel.Warn, "Unable to get website content for site " + task.settings.URL);
-            }
-            if (oldHTMLChunk == string.Empty)
-            {
-                logger.Log(LogLevel.Info, "Skipping because we don't know what the website looked like before");
-            }
-
-            handleComparisons(oldHTMLChunk, newHTMLChunk, task);
-        }
-
-       
-
-        public static void addNewTask(string newTaskName, SitewatchTask pTask)
-        {
-            tasks.Add(newTaskName, pTask);
-        }
-
-        
 
         public static void getChangeCount(string textBefore, string textAfter, out int pAdditions, out int pDeletions)
         {

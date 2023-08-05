@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 public class MessageAlerts
 {
-    public static async Task sendDiscordWebhookMessage(string pURL, string message)
+    public static void sendDiscordWebhookMessage(string pURL, string message)
     {
         Program.logger.Info(message);
         using (HttpClient client = new HttpClient())
         {
-            await client.PostAsync(pURL, new StringContent("{\"content\":\"content\"}", Encoding.UTF8, "application/json")); 
+            client.PostAsync(pURL, new StringContent("{\"content\":\""+message+"\"}", Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); 
         }
     }
 }
