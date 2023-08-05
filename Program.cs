@@ -143,7 +143,7 @@ namespace Sitewatch
             if (didAddContent)
             {
                 await Safety.setArchivedSiteContent(task.name, textAfter);
-                await MessageAlerts.sendDiscordWebhookTextFile(settings.DiscordWebhookURL, messageToCraft.ToString());
+                await MessageAlerts.sendDiscordWebhookTextFile(settings.DiscordWebhookURL, task.name+".txt", messageToCraft.ToString());
             }
         }
 

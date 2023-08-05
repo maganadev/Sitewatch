@@ -25,16 +25,16 @@ public class MessageAlerts
         }
     }
 
-    public static async Task sendDiscordWebhookTextFile(string pURL, string message)
+    public static async Task sendDiscordWebhookTextFile(string pURL, string filename, string content)
     {
-        Program.logger.Info(message);
+        Program.logger.Info(content);
         try
         {
             using (HttpClient client = new HttpClient())
             {
                 MultipartFormDataContent form = new MultipartFormDataContent();
-                var file_bytes = Encoding.UTF8.GetBytes(message);
-                form.Add(new ByteArrayContent(file_bytes, 0, file_bytes.Length), "Document", "file.txt");
+                var file_bytes = Encoding.UTF8.GetBytes(content);
+                form.Add(new ByteArrayContent(file_bytes, 0, file_bytes.Length), "Document", filename);
                 await client.PostAsync(pURL, form);
                 client.Dispose();
             }
