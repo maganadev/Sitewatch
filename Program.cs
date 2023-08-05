@@ -10,8 +10,9 @@ namespace Sitewatch
     public class Program
     {
         public static Logger logger = LogManager.GetCurrentClassLogger();
-        public static Mutex TaskListMutex = new Mutex();
+        public static JSON_Settings settings = JSON_Settings.getSettings();
         public static Dictionary<string, SitewatchTask> tasks = new Dictionary<string, SitewatchTask>();
+        public static Mutex TaskListMutex = new Mutex();
 
         public static void Main(string[] args)
         {
@@ -37,6 +38,59 @@ namespace Sitewatch
                 }
 
                 handleComparisons(oldHTMLChunk, newHTMLChunk, task);
+            }
+        }
+
+        public static void handleComparisons(string textBefore, string textAfter, SitewatchTask task)
+        {
+            string message = string.Empty;
+
+            //Check for failure
+            if (textAfter == string.Empty)
+            {
+                task.failCounter++;
+                return;
+            }
+            else
+            {
+                task.failCounter = 0;
+            }
+
+            if (textBefore == string.Empty)
+            {
+                Safety.setArchivedSiteContent(task.name, textAfter);
+                message = "Setting initial content for task " + task.name;
+                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                return;
+            }
+
+            int additions = 0;
+            int deletions = 0;
+            getChangeCount(textBefore, textAfter, out additions, out deletions);
+            bool wereAdditions = additions > 0;
+            bool wereDeletions = deletions > 0;
+            bool wereChanges = wereAdditions || wereDeletions;
+
+            if (task.settings.watchFor == "additions" && wereAdditions)
+            {
+                Safety.setArchivedSiteContent(task.name, textAfter);
+                message = "There were additions for task " + task.name;
+                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                return;
+            }
+            else if (task.settings.watchFor == "deletions" && wereDeletions)
+            {
+                Safety.setArchivedSiteContent(task.name, textAfter);
+                message = "There were deletions for task " + task.name;
+                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                return;
+            }
+            else if (wereChanges)
+            {
+                Safety.setArchivedSiteContent(task.name, textAfter);
+                message = "There were changes for task " + task.name;
+                Task.Run(() => MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message));
+                return;
             }
         }
 
@@ -98,52 +152,6 @@ namespace Sitewatch
             }
             pAdditions = additions;
             pDeletions = deletions;
-        }
-
-        public static void handleComparisons(string textBefore, string textAfter, SitewatchTask task)
-        {
-            //Check for failure
-            if (textAfter == string.Empty)
-            {
-                task.failCounter++;
-                return;
-            }
-            else
-            {
-                task.failCounter = 0;
-            }
-
-            if (textBefore == string.Empty)
-            {
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                return;
-            }
-
-            int additions = 0;
-            int deletions = 0;
-            getChangeCount(textBefore, textAfter, out additions, out deletions);
-            bool wereAdditions = additions > 0;
-            bool wereDeletions = deletions > 0;
-            bool wereChanges = wereAdditions || wereDeletions;
-
-            if (task.settings.watchFor == "additions" && wereAdditions)
-            {
-                logger.Log(LogLevel.Info,"There were additions!");
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                return;
-            }
-            else if (task.settings.watchFor == "deletions" && wereDeletions)
-            {
-                logger.Log(LogLevel.Info, "There were deletions!");
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                return;
-            }
-            else if (wereChanges)
-            {
-                logger.Log(LogLevel.Info, "There were changes!");
-                Safety.setArchivedSiteContent(task.name, textAfter);
-                return;
-            }
         }
     }
 }
