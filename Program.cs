@@ -15,7 +15,7 @@ namespace Sitewatch
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static JSON_Settings settings = JSON_Settings.getSettings();
         public static Dictionary<string, SitewatchTask> tasks = new Dictionary<string, SitewatchTask>();
-        public static System.Timers.Timer tasksUpdateTimer = new System.Timers.Timer();
+        public static System.Timers.Timer? tasksUpdateTimer = new System.Timers.Timer();
 
         public static void Main(string[] args)
         {
@@ -46,13 +46,16 @@ namespace Sitewatch
 
                 SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
                 tasks.Add(newName, newTask);
+                logger.Info("Adding task " + newName);
                 Task.Run(() => TimerUp_CheckOnTask(null, null, newTask));
             }
 
             //Reset timer
+            System.Timers.Timer oldTimer = tasksUpdateTimer;
             tasksUpdateTimer = new System.Timers.Timer(60 * 1000){AutoReset = false};
             tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(sender, e));
             tasksUpdateTimer.Start();
+            if (oldTimer != null) { oldTimer.Dispose(); }
         }
 
         public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
@@ -65,9 +68,11 @@ namespace Sitewatch
             HandleComparisons(oldHTMLChunk, newHTMLChunk, task);
 
             //Reset timer
-            tasksUpdateTimer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000){AutoReset = false};
-            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(sender, e, task));
-            tasksUpdateTimer.Start();
+            System.Timers.Timer oldTimer = task.timer;
+            task.timer = new System.Timers.Timer(task.settings.SecondsBetweenUpdate * 1000.0){AutoReset = false};
+            task.timer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(sender, e, task));
+            task.timer.Start();
+            if (oldTimer != null) { oldTimer.Dispose(); }
         }
 
         public static void HandleComparisons(string textBefore, string textAfter, SitewatchTask task)
