@@ -17,7 +17,7 @@ namespace Sitewatch.JSON
             TaskFolderPath = "";
         }
 
-        private void sanitize()
+        private void sanitizeInputs()
         {
             DiscordWebhookURL = DiscordWebhookURL == null ? "" : DiscordWebhookURL;
             ChromiumBinPath = ChromiumBinPath == null ? "" : ChromiumBinPath;
@@ -42,7 +42,7 @@ namespace Sitewatch.JSON
                 }
             }
             catch (Exception) { }
-            toReturn.sanitize();
+            toReturn.sanitizeInputs();
             return toReturn;
         }
     }

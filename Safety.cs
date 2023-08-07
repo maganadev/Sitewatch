@@ -13,13 +13,13 @@ namespace Sitewatch
             try
             {
                 var nodes = doc.DocumentNode.QuerySelectorAll(query);
-                foreach(var node in nodes )
+                foreach (var node in nodes)
                 {
                     toReturn.Append(node.OuterHtml);
                 }
                 return toReturn.ToString();
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return string.Empty;
             }
@@ -32,10 +32,7 @@ namespace Sitewatch
             {
                 toReturn.LoadHtml(pContents);
             }
-            catch(Exception)
-            {
-                //
-            }
+            catch (Exception) { }
             return toReturn;
         }
 
@@ -48,10 +45,7 @@ namespace Sitewatch
                 string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
                 toReturn = await File.ReadAllTextAsync(filepath);
             }
-            catch(Exception)
-            {
-                //
-            }
+            catch (Exception) { }
             return toReturn;
         }
 
@@ -60,13 +54,10 @@ namespace Sitewatch
             try
             {
                 DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
-                string filepath = Path.Combine(tasksDir.FullName, pName+".content");
+                string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
                 await File.WriteAllTextAsync(filepath, pContents);
             }
-            catch (Exception)
-            {
-                //
-            }
+            catch (Exception) { }
         }
 
         public static string TruncateString(string string1, string string2)
@@ -88,10 +79,7 @@ namespace Sitewatch
                 byte[] data = Convert.FromBase64String(b64encoded);
                 toReturn = System.Text.Encoding.UTF8.GetString(data);
             }
-            catch (Exception)
-            {
-                //
-            }
+            catch (Exception) { }
             return toReturn;
         }
     }

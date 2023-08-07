@@ -29,7 +29,7 @@ namespace Sitewatch.JSON
             SecondsToWaitAfterScriptExecution = 1;
         }
 
-        private void sanitize()
+        private void sanitizeInputs()
         {
             URL = URL == null ? "" : URL;
             querySelectorQuery = querySelectorQuery == null ? "" : querySelectorQuery;
@@ -54,13 +54,13 @@ namespace Sitewatch.JSON
                 SitewachTaskConfig? temp = JsonSerializer.Deserialize<SitewachTaskConfig>(File.ReadAllText(pFileInfo.FullName));
                 if (temp != null)
                 {
-                    temp.sanitize();
+                    temp.sanitizeInputs();
                     File.WriteAllText(pFileInfo.FullName, JsonSerializer.Serialize(temp, new JsonSerializerOptions { WriteIndented = true }));
                     toReturn = temp;
                 }
             }
             catch (Exception) { }
-            toReturn.sanitize();
+            toReturn.sanitizeInputs();
             return toReturn;
         }
     }

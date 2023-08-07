@@ -6,15 +6,15 @@ using Sitewatch;
 public class PuppeteerSingleton
 {
     private static IBrowser? browser = null;
-    private static Semaphore pool = new Semaphore(4,4);
+    private static Semaphore pool = new Semaphore(4, 4);
 
     public static async Task init()
     {
         //Download and setup chrome
-        using var browserFetcher = new BrowserFetcher();
 
         if (Program.settings.ChromiumBinPath == string.Empty)
         {
+            using var browserFetcher = new BrowserFetcher();
             await browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision);
             browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
         }

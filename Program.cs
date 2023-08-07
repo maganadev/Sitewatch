@@ -48,7 +48,7 @@ namespace Sitewatch
             if (tasksAdded == 0)
             {
                 logger.Error("No tasks added, exiting");
-                Environment.FailFast("No tasks added, exiting");
+                Environment.Exit(0);
             }
         }
 
@@ -249,7 +249,7 @@ namespace Sitewatch
             catch (Exception)
             {
                 logger.Error("Unable to access Task folder, exiting");
-                Environment.FailFast("Unable to access Task folder, exiting");
+                Environment.Exit(0);
                 return null;
             }
         }

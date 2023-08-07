@@ -21,7 +21,7 @@ public class MessageAlerts
         }
         catch (Exception)
         {
-            //
+            Program.logger.Warn("Could not send message to Discord Webhook");
         }
     }
 
@@ -41,7 +41,7 @@ public class MessageAlerts
         }
         catch (Exception)
         {
-            //
+            Program.logger.Warn("Could not send text file to Discord Webhook");
         }
     }
 }
