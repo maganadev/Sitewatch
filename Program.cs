@@ -1,6 +1,4 @@
-﻿#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+﻿#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 
 using DiffLib;
 using NLog;
@@ -30,6 +28,13 @@ namespace Sitewatch
         {
             DirectoryInfo tasksDir = getTaskDirectory();
             var taskFiles = tasksDir.GetFiles("*.json");
+
+            if (taskFiles.Length == 0)
+            {
+                logger.Error("No tasks added, exiting");
+                Environment.FailFast("No tasks added, exiting");
+            }
+
             foreach (var taskFile in taskFiles)
             {
                 SitewachTaskConfig taskSettings = SitewachTaskConfig.getSettings(taskFile);
@@ -65,7 +70,7 @@ namespace Sitewatch
 
         public static async void HandleComparisons(string textBefore, string textAfter, SitewatchTask task)
         {
-            if (await ShouldBailOnInput(textBefore, textAfter, task))
+            if (await RespondOnSiteChange(textBefore, textAfter, task))
             {
                 return;
             }
@@ -135,7 +140,7 @@ namespace Sitewatch
             }
         }
 
-        public static async Task<bool> ShouldBailOnInput(string textBefore, string textAfter, SitewatchTask task)
+        public static async Task<bool> RespondOnSiteChange(string textBefore, string textAfter, SitewatchTask task)
         {
             string message = string.Empty;
 
@@ -241,8 +246,9 @@ namespace Sitewatch
             }
             catch (Exception)
             {
-                logger.Error("Unable to access Task folder");
-                return Directory.CreateDirectory("Tasks");
+                logger.Error("Unable to access Task folder, exiting");
+                Environment.FailFast("Unable to access Task folder, exiting");
+                return null;
             }
         }
     }
