@@ -28,12 +28,7 @@ namespace Sitewatch
         {
             DirectoryInfo tasksDir = getTaskDirectory();
             var taskFiles = tasksDir.GetFiles("*.json");
-
-            if (taskFiles.Length == 0)
-            {
-                logger.Error("No tasks added, exiting");
-                Environment.FailFast("No tasks added, exiting");
-            }
+            int tasksAdded = 0;
 
             foreach (var taskFile in taskFiles)
             {
@@ -47,6 +42,13 @@ namespace Sitewatch
                 SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
                 logger.Info("Adding task " + newName);
                 Task.Run(() => TimerUp_CheckOnTask(null, null, newTask));
+                tasksAdded++;
+            }
+
+            if (tasksAdded == 0)
+            {
+                logger.Error("No tasks added, exiting");
+                Environment.FailFast("No tasks added, exiting");
             }
         }
 
