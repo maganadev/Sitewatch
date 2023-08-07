@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Sitewatch.JSON
 {
-    public class JSON_Settings
+    public class SitewatchSettings
     {
         public string DiscordWebhookURL { get; set; }
         public string ChromiumBinPath { get; set; }
@@ -24,21 +24,21 @@ namespace Sitewatch.JSON
             TaskFolderPath = TaskFolderPath == null ? "" : TaskFolderPath;
         }
 
-        public static JSON_Settings getSettings()
+        public static SitewatchSettings getSettings()
         {
             const string settingsPath = "settings.json";
-            var toReturn = new JSON_Settings();
+            var toReturn = new SitewatchSettings();
             toReturn.initDefault();
             try
             {
                 if (File.Exists(settingsPath))
                 {
-                    JSON_Settings? temp = JsonSerializer.Deserialize<JSON_Settings>(File.ReadAllText(settingsPath));
+                    SitewatchSettings? temp = JsonSerializer.Deserialize<SitewatchSettings>(File.ReadAllText(settingsPath));
                     toReturn = temp != null ? temp : toReturn;
                 }
                 else
                 {
-                    File.WriteAllText(settingsPath, JsonSerializer.Serialize<JSON_Settings>(toReturn, JsonSerializerOptions.Default));
+                    File.WriteAllText(settingsPath, JsonSerializer.Serialize<SitewatchSettings>(toReturn, JsonSerializerOptions.Default));
                 }
             }
             catch (Exception) { }

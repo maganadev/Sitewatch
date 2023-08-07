@@ -14,49 +14,35 @@ namespace Sitewatch
     public class Program
     {
         public static Logger logger = LogManager.GetCurrentClassLogger();
-        public static JSON_Settings settings = JSON_Settings.getSettings();
-        public static Dictionary<string, SitewatchTask> tasks = new Dictionary<string, SitewatchTask>();
-        public static System.Timers.Timer? tasksUpdateTimer = new System.Timers.Timer();
+        public static SitewatchSettings settings = SitewatchSettings.getSettings();
 
         public static void Main(string[] args)
         {
             applyLogConfig();
             PuppeteerSingleton.init().GetAwaiter().GetResult();
-            TimerUp_UpdateTasks(null, null);
+            AddTasks();
 
             //Sleep main thread in an endless loop
             while (true) { Thread.Sleep(1000); }
         }
 
-        public static async void TimerUp_UpdateTasks(Object source, ElapsedEventArgs e)
+        public static void AddTasks()
         {
             DirectoryInfo tasksDir = getTaskDirectory();
-            foreach (var taskFile in tasksDir.GetFiles("*.json"))
+            var taskFiles = tasksDir.GetFiles("*.json");
+            foreach (var taskFile in taskFiles)
             {
-                JSON_SitewatchTaskSettings taskSettings = JSON_SitewatchTaskSettings.getSettings(taskFile);
+                SitewachTaskConfig taskSettings = SitewachTaskConfig.getSettings(taskFile);
                 if (taskSettings.URL == string.Empty)
                 {
                     continue;
                 }
 
                 string newName = Safety.TruncateString(taskFile.Name, taskFile.Extension);
-                if (tasks.ContainsKey(newName))
-                {
-                    continue;
-                }
-
                 SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
-                tasks.Add(newName, newTask);
                 logger.Info("Adding task " + newName);
                 Task.Run(() => TimerUp_CheckOnTask(null, null, newTask));
             }
-
-            //Reset timer
-            System.Timers.Timer? oldTimer = tasksUpdateTimer;
-            tasksUpdateTimer = new System.Timers.Timer(60 * 1000) { AutoReset = false };
-            tasksUpdateTimer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_UpdateTasks(null, null));
-            tasksUpdateTimer.Start();
-            if (oldTimer != null) { oldTimer.Dispose(); }
         }
 
         public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
