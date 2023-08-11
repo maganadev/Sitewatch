@@ -1,6 +1,5 @@
 ﻿#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 
-using DiffLib;
 using NLog;
 using Sitewatch.OOP;
 using Sitewatch.JSON;
@@ -56,11 +55,11 @@ namespace Sitewatch
         {
             string scriptToExecute = Safety.GetUTF8FromBase64(task.settings.Base64_ScriptToExecute);
             string pageSource = await PuppeteerSingleton.getPageSource(task.settings.URL, task.settings.SecondsToWaitAfterScriptExecution, scriptToExecute);
-            var doc = Safety.docFromString(pageSource);
-            string newHTMLChunk = Safety.QuerySelectorAll(doc, task.settings.querySelectorQuery);
-            string oldHTMLChunk = await Safety.getArchivedSiteContent(task.name);
+            var doc = HTMLAgility.docFromString(pageSource);
+            Dictionary<string, int> oldHTMLChunks = await Safety.getArchivedSiteContent(task.name);
+            Dictionary<string, int> newHTMLChunks = HTMLAgility.QuerySelectorAll(doc, task.settings.QuerySelectorAll_Query);
 
-            HandleComparisons(oldHTMLChunk, newHTMLChunk, task);
+            HandleComparisons(oldHTMLChunks, newHTMLChunks, task);
 
             //Reset timer
             System.Timers.Timer? oldTimer = task.timer;
@@ -70,65 +69,79 @@ namespace Sitewatch
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
 
-        public static async void HandleComparisons(string textBefore, string textAfter, SitewatchTask task)
+        public static async void HandleComparisons(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTask task)
         {
-            if (await RespondOnSiteChange(textBefore, textAfter, task))
+            if (await RespondOnSiteChange(newHTMLChunks, oldHTMLChunks, task))
             {
                 return;
             }
 
-            List<TextDiff> pureAdditions = new List<TextDiff>();
-            List<TextDiff> pureDeletions = new List<TextDiff>();
-            List<TextDiff> changes = new List<TextDiff>();
-            List<TextDiff> noChanges = new List<TextDiff>();
-            getChanges(textBefore, textAfter, out pureAdditions, out pureDeletions, out changes, out noChanges);
+            Dictionary<string,bool> additions = new Dictionary<string,bool>();
+            Dictionary<string,bool> deletions = new Dictionary<string,bool>();
+            Dictionary<string,bool> noChanges = new Dictionary<string,bool>();
+            foreach(var chunk in oldHTMLChunks)
+            {
+                if (!newHTMLChunks.ContainsKey(chunk.Key))
+                {
+                    //Was deletion
+                    deletions.TryAdd(chunk.Key,true);
+                }
+                else
+                {
+                    //Was noChange
+                    noChanges.TryAdd(chunk.Key,true);
+                }
+            }
+            foreach (var chunk in newHTMLChunks)
+            {
+                if (!oldHTMLChunks.ContainsKey(chunk.Key))
+                {
+                    //Was addition
+                    additions.TryAdd(chunk.Key, true);
+                }
+                else
+                {
+                    //Was noChange
+                    noChanges.TryAdd(chunk.Key, true);
+                }
+            }
 
             StringBuilder messageToCraft = new StringBuilder();
             messageToCraft.Append(task.name);
             messageToCraft.Append("\n////////Updates:\n\n\n");
             bool didAddContent = false;
 
-            if (task.settings.watchForPureAdditions)
+            //if (task.settings.ShouldWatchForAdditions)
+            if (task.settings.ShouldWatchForAdditions)
             {
-                foreach (TextDiff diff in pureAdditions)
+                foreach (string chunk in additions.Keys)
                 {
                     messageToCraft.Append("////////Addition of:\n");
-                    messageToCraft.Append(diff.textAfter);
+                    messageToCraft.Append(chunk);
                     messageToCraft.Append("\n\n\n");
 
                     didAddContent = true;
                 }
             }
-            if (task.settings.watchForPureDeletions)
+            //if (task.settings.ShouldWatchForAdditions)
+            if (task.settings.ShouldWatchForAdditions)
             {
-                foreach (TextDiff diff in pureDeletions)
+                foreach (string chunk in deletions.Keys)
                 {
                     messageToCraft.Append("////////Deletion of:\n");
-                    messageToCraft.Append(diff.textBefore);
+                    messageToCraft.Append(chunk);
                     messageToCraft.Append("\n\n\n");
 
                     didAddContent = true;
                 }
             }
-            if (task.settings.watchForChanges)
+            //if (task.settings.ShouldWatchForNoChanges)
+            if (task.settings.ShouldWatchForNoChanges)
             {
-                foreach (TextDiff diff in changes)
-                {
-                    messageToCraft.Append("////////Change of:\n");
-                    messageToCraft.Append(diff.textBefore);
-                    messageToCraft.Append("\nInto:\n");
-                    messageToCraft.Append(diff.textAfter);
-                    messageToCraft.Append("\n\n\n");
-
-                    didAddContent = true;
-                }
-            }
-            if (task.settings.watchForNoChanges)
-            {
-                foreach (TextDiff diff in noChanges)
+                foreach (string chunk in noChanges.Keys)
                 {
                     messageToCraft.Append("////////No change to:\n");
-                    messageToCraft.Append(diff.textBefore);
+                    messageToCraft.Append(chunk);
                     messageToCraft.Append("\n\n\n");
 
                     didAddContent = true;
@@ -137,17 +150,17 @@ namespace Sitewatch
 
             if (didAddContent)
             {
-                await Safety.setArchivedSiteContent(task.name, textAfter);
+                await Safety.setArchivedSiteContent(task.name, newHTMLChunks);
                 await MessageAlerts.sendDiscordWebhookTextFile(settings.DiscordWebhookURL, task.name + ".txt", messageToCraft.ToString());
             }
         }
 
-        public static async Task<bool> RespondOnSiteChange(string textBefore, string textAfter, SitewatchTask task)
+        public static async Task<bool> RespondOnSiteChange(Dictionary<string, int> newHTMLChunks, Dictionary<string, int> oldHTMLChunks, SitewatchTask task)
         {
             string message = string.Empty;
 
             //Check for failure
-            if (textAfter == string.Empty)
+            if (newHTMLChunks.Count == 0)
             {
                 task.failCounter++;
                 logger.Info("Failed to access the site for task " + task.name);
@@ -171,56 +184,15 @@ namespace Sitewatch
                 task.failCounter = 0;
             }
 
-            if (textBefore == string.Empty)
+            if (oldHTMLChunks.Count == 0)
             {
-                await Safety.setArchivedSiteContent(task.name, textAfter);
+                await Safety.setArchivedSiteContent(task.name, newHTMLChunks);
                 message = "Setting initial content for task " + task.name;
                 await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return true;
             }
 
             return false;
-        }
-
-        public static void getChanges(
-            string textBefore,
-            string textAfter,
-            out List<TextDiff> pPureAdditions,
-            out List<TextDiff> pPureDeletions,
-            out List<TextDiff> pChanges,
-            out List<TextDiff> pNoChanges
-            )
-        {
-            pPureAdditions = new List<TextDiff>();
-            pPureDeletions = new List<TextDiff>();
-            pChanges = new List<TextDiff>();
-            pNoChanges = new List<TextDiff>();
-            IEnumerable<DiffSection> sections = Diff.CalculateSections(textBefore.ToCharArray(), textAfter.ToCharArray());
-            int p1 = 0;
-            int p2 = 0;
-            foreach (var section in sections)
-            {
-                string beforeText = textBefore.Substring(p1, section.LengthInCollection1);
-                string afterText = textAfter.Substring(p2, section.LengthInCollection2);
-                p1 += section.LengthInCollection1;
-                p2 += section.LengthInCollection2;
-                TextDiff toAdd = new TextDiff(beforeText, afterText);
-                switch (toAdd.type)
-                {
-                    case DiffType.PureAddition:
-                        pPureAdditions.Add(toAdd);
-                        break;
-                    case DiffType.PureDeletion:
-                        pPureDeletions.Add(toAdd);
-                        break;
-                    case DiffType.Change:
-                        pChanges.Add(toAdd);
-                        break;
-                    case DiffType.NoChange:
-                        pNoChanges.Add(toAdd);
-                        break;
-                }
-            }
         }
 
         public static void applyLogConfig()

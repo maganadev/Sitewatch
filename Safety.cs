@@ -1,61 +1,32 @@
-﻿using Fizzler.Systems.HtmlAgilityPack;
-using HtmlAgilityPack;
-using System.Buffers.Text;
-using System.Text;
+﻿using Sitewatch.JSON;
+using System.Text.Json;
 
 namespace Sitewatch
 {
     public class Safety
     {
-        public static string QuerySelectorAll(HtmlDocument doc, string query)
+        public static async Task<Dictionary<string, int>> getArchivedSiteContent(string pName)
         {
-            StringBuilder toReturn = new StringBuilder();
+            Dictionary<string, int> toReturn = new Dictionary<string, int>();
             try
             {
-                var nodes = doc.DocumentNode.QuerySelectorAll(query);
-                foreach (var node in nodes)
-                {
-                    toReturn.Append(node.OuterHtml);
-                }
-                return toReturn.ToString();
-            }
-            catch (Exception)
-            {
-                return string.Empty;
-            }
-        }
-
-        public static HtmlDocument docFromString(string pContents)
-        {
-            HtmlDocument toReturn = new HtmlDocument();
-            try
-            {
-                toReturn.LoadHtml(pContents);
+                DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
+                string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
+                var temp = JsonSerializer.Deserialize<Dictionary<string, int>>(await File.ReadAllTextAsync(filepath));
+                toReturn = temp != null ? temp : toReturn;
             }
             catch (Exception) { }
             return toReturn;
         }
 
-        public static async Task<string> getArchivedSiteContent(string pName)
-        {
-            string toReturn = string.Empty;
-            try
-            {
-                DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
-                string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
-                toReturn = await File.ReadAllTextAsync(filepath);
-            }
-            catch (Exception) { }
-            return toReturn;
-        }
-
-        public static async Task setArchivedSiteContent(string pName, string pContents)
+        public static async Task setArchivedSiteContent(string pName, Dictionary<string, int> pContents)
         {
             try
             {
                 DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
                 string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
-                await File.WriteAllTextAsync(filepath, pContents);
+                string value = JsonSerializer.Serialize(pContents, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(filepath, value);
             }
             catch (Exception) { }
         }
