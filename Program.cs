@@ -111,7 +111,6 @@ namespace Sitewatch
             messageToCraft.Append("\n////////Updates:\n\n\n");
             bool didAddContent = false;
 
-            //if (task.settings.ShouldWatchForAdditions)
             if (task.settings.ShouldWatchForAdditions)
             {
                 foreach (string chunk in additions.Keys)
@@ -123,8 +122,7 @@ namespace Sitewatch
                     didAddContent = true;
                 }
             }
-            //if (task.settings.ShouldWatchForAdditions)
-            if (task.settings.ShouldWatchForAdditions)
+            if (task.settings.ShouldWatchForDeletions)
             {
                 foreach (string chunk in deletions.Keys)
                 {
@@ -135,7 +133,6 @@ namespace Sitewatch
                     didAddContent = true;
                 }
             }
-            //if (task.settings.ShouldWatchForNoChanges)
             if (task.settings.ShouldWatchForNoChanges)
             {
                 foreach (string chunk in noChanges.Keys)
