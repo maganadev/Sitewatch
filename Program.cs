@@ -71,7 +71,7 @@ namespace Sitewatch
 
         public static async void HandleComparisons(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTask task)
         {
-            if (await RespondOnSiteChange(newHTMLChunks, oldHTMLChunks, task))
+            if (await RespondOnSiteChange(oldHTMLChunks, newHTMLChunks, task))
             {
                 return;
             }
@@ -152,7 +152,7 @@ namespace Sitewatch
             }
         }
 
-        public static async Task<bool> RespondOnSiteChange(Dictionary<string, int> newHTMLChunks, Dictionary<string, int> oldHTMLChunks, SitewatchTask task)
+        public static async Task<bool> RespondOnSiteChange(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTask task)
         {
             string message = string.Empty;
 
