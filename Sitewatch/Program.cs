@@ -12,6 +12,7 @@ namespace Sitewatch
     {
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static SitewatchSettings settings = SitewatchSettings.getSettings();
+        public static List<SitewatchTask> taskConfigs = new List<SitewatchTask>();
 
         public static void Main(string[] args)
         {
@@ -32,14 +33,10 @@ namespace Sitewatch
             foreach (var taskFile in taskFiles)
             {
                 SitewachTaskConfig taskSettings = SitewachTaskConfig.getSettings(taskFile);
-                if (taskSettings.URL == string.Empty)
-                {
-                    continue;
-                }
-
                 string newName = Safety.TruncateString(taskFile.Name, taskFile.Extension);
                 SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
                 logger.Info("Adding task " + newName);
+                taskConfigs.Add(newTask);
                 Task.Run(() => TimerUp_CheckOnTask(null, null, newTask));
                 tasksAdded++;
             }
