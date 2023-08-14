@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Sitewatch.JSON
 {
-    public class SitewachTaskConfig
+    public class SitewatchTaskConfig
     {
         public string URL { get; set; }
         public string QuerySelectorAll_Query { get; set; }
@@ -43,13 +43,13 @@ namespace Sitewatch.JSON
             }
         }
 
-        public static SitewachTaskConfig getSettings(FileInfo pFileInfo)
+        public static SitewatchTaskConfig getSettings(FileInfo pFileInfo)
         {
-            var toReturn = new SitewachTaskConfig();
+            var toReturn = new SitewatchTaskConfig();
             toReturn.initDefault();
             try
             {
-                SitewachTaskConfig? temp = JsonSerializer.Deserialize<SitewachTaskConfig>(File.ReadAllText(pFileInfo.FullName));
+                SitewatchTaskConfig? temp = JsonSerializer.Deserialize<SitewatchTaskConfig>(File.ReadAllText(pFileInfo.FullName));
                 if (temp != null)
                 {
                     temp.sanitizeInputs();

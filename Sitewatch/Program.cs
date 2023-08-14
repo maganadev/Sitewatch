@@ -12,13 +12,14 @@ namespace Sitewatch
     {
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static SitewatchSettings settings = SitewatchSettings.getSettings();
-        public static List<SitewatchTask> taskConfigs = new List<SitewatchTask>();
+        public static List<SitewatchTask> tasks = new List<SitewatchTask>();
 
         public static void Main(string[] args)
         {
             applyLogConfig();
             PuppeteerSingleton.init().GetAwaiter().GetResult();
             AddTasks();
+            launchTasks();
 
             //Sleep main thread in an endless loop
             while (true) { Thread.Sleep(1000); }
@@ -28,23 +29,28 @@ namespace Sitewatch
         {
             DirectoryInfo tasksDir = getTaskDirectory();
             var taskFiles = tasksDir.GetFiles("*.json");
-            int tasksAdded = 0;
 
             foreach (var taskFile in taskFiles)
             {
-                SitewachTaskConfig taskSettings = SitewachTaskConfig.getSettings(taskFile);
+                SitewatchTaskConfig taskSettings = SitewatchTaskConfig.getSettings(taskFile);
                 string newName = Safety.TruncateString(taskFile.Name, taskFile.Extension);
                 SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
                 logger.Info("Adding task " + newName);
-                taskConfigs.Add(newTask);
-                Task.Run(() => TimerUp_CheckOnTask(null, null, newTask));
-                tasksAdded++;
+                tasks.Add(newTask);
             }
 
-            if (tasksAdded == 0)
+            if (tasks.Count == 0)
             {
                 logger.Error("No tasks added, exiting");
                 Environment.Exit(0);
+            }
+        }
+
+        public static void launchTasks()
+        {
+            foreach(var task in tasks)
+            {
+                Task.Run(() => TimerUp_CheckOnTask(null, null, task));
             }
         }
 
