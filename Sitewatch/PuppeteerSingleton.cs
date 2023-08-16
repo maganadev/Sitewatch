@@ -121,11 +121,12 @@ public class PuppeteerSingleton
     {
         try
         {
-            await page.TypeAsync("", step.value);
+            var meme = step.value.Split('|');
+            await page.TypeAsync(meme[0], meme[1], new PuppeteerSharp.Input.TypeOptions { Delay = 100 });
         }
         catch (Exception)
         {
-            Program.logger.Warn("Unable to click element");
+            Program.logger.Warn("Unable to type element");
         }
     }
 }
