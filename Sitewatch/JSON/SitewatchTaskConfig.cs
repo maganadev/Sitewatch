@@ -1,6 +1,7 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 using System.Text.Json;
+using Sitewatch.OOP;
 
 namespace Sitewatch.JSON
 {
@@ -8,38 +9,35 @@ namespace Sitewatch.JSON
     {
         public string URL { get; set; }
         public string QuerySelectorAll_Query { get; set; }
-        public string Base64_ScriptToExecute { get; set; }
+        public List<PreprocessStep> PreprocessSteps { get; set; }
         public bool ShouldWatchForAdditions { get; set; }
         public bool ShouldWatchForDeletions { get; set; }
         public bool ShouldWatchForNoChanges { get; set; }
-        public int SecondsToWaitBeforeEachCheck { get; set; }
-        public int SecondsToWaitAfterScriptExecution { get; set; }
+        public int UpdateCheckIntervalSeconds { get; set; }
 
         public void initDefault()
         {
             URL = "";
             QuerySelectorAll_Query = "body";
-            Base64_ScriptToExecute = "";
+            PreprocessSteps = new List<PreprocessStep>();
             ShouldWatchForAdditions = true;
             ShouldWatchForDeletions = false;
             ShouldWatchForDeletions = false;
-            SecondsToWaitBeforeEachCheck = 3600;
-            SecondsToWaitAfterScriptExecution = 1;
+            UpdateCheckIntervalSeconds = 3600;
         }
 
         private void sanitizeInputs()
         {
             URL = URL == null ? "" : URL;
             QuerySelectorAll_Query = QuerySelectorAll_Query == null ? "" : QuerySelectorAll_Query;
-            Base64_ScriptToExecute = Base64_ScriptToExecute == null ? "" : Base64_ScriptToExecute;
-
-            if (SecondsToWaitBeforeEachCheck <= 0)
+            if (PreprocessSteps == null)
             {
-                SecondsToWaitBeforeEachCheck = 3600;
+                PreprocessSteps = new List<PreprocessStep>();
             }
-            if (SecondsToWaitAfterScriptExecution <= 0)
+
+            if (UpdateCheckIntervalSeconds <= 0)
             {
-                SecondsToWaitAfterScriptExecution = 1;
+                UpdateCheckIntervalSeconds = 3600;
             }
         }
 
@@ -49,11 +47,17 @@ namespace Sitewatch.JSON
             toReturn.initDefault();
             try
             {
-                SitewatchTaskConfig? temp = JsonSerializer.Deserialize<SitewatchTaskConfig>(File.ReadAllText(pFileInfo.FullName));
+                SitewatchTaskConfig? temp = JsonSerializer.Deserialize<SitewatchTaskConfig>(File.ReadAllText(pFileInfo.FullName), new JsonSerializerOptions
+                {
+                    IncludeFields = true
+                });
                 if (temp != null)
                 {
                     temp.sanitizeInputs();
-                    File.WriteAllText(pFileInfo.FullName, JsonSerializer.Serialize(temp, new JsonSerializerOptions { WriteIndented = true }));
+                    File.WriteAllText(pFileInfo.FullName, JsonSerializer.Serialize(temp, new JsonSerializerOptions {
+                        WriteIndented = true,
+                        IncludeFields = true,
+                    }));
                     toReturn = temp;
                 }
             }
