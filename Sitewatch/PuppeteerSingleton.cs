@@ -16,13 +16,13 @@ public class PuppeteerSingleton
             //Download and setup Chromium
             using var browserFetcher = new BrowserFetcher();
             await browserFetcher.DownloadAsync(BrowserFetcher.DefaultChromiumRevision);
-            browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = false });
+            browser = await Puppeteer.LaunchAsync(new LaunchOptions { Headless = true });
         }
         else
         {
             browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Headless = false,
+                Headless = true,
                 ExecutablePath = Program.settings.ChromiumBinPath
             });
         }
@@ -41,7 +41,7 @@ public class PuppeteerSingleton
             await page.GoToAsync(url);
             for (int i = 0; i < preprocessSteps.Count; i++)
             {
-                await ExecuteStep(page, preprocessSteps[i]);
+                await ExecuteStep(url, page, preprocessSteps[i]);
             }
             toReturn = await page.GetContentAsync();
             await page.CloseAsync();
@@ -52,21 +52,21 @@ public class PuppeteerSingleton
         return toReturn;
     }
 
-    public static async Task ExecuteStep(IPage? page, PreprocessStep step)
+    public static async Task ExecuteStep(string url, IPage? page, PreprocessStep step)
     {
         switch (step.action.ToLower())
         {
             case "wait":
-                await TryWait(page, step);
+                await TryWait(url, page, step);
                 break;
             case "exec_b64_js":
-                await TryExec(page, step);
+                await TryExec(url, page, step);
                 break;
             case "click":
-                await TryClick(page, step);
+                await TryClick(url, page, step);
                 break;
             case "type":
-                await TryType(page, step);
+                await TryType(url, page, step);
                 break;
             default:
                 Program.logger.Warn("A preprocessing step action was not recognized");
@@ -74,7 +74,7 @@ public class PuppeteerSingleton
         }
     }
 
-    public static async Task TryWait(IPage? page, PreprocessStep step)
+    public static async Task TryWait(string url, IPage? page, PreprocessStep step)
     {
         int secondsToWait = 0;
         if (int.TryParse(step.value, out secondsToWait))
@@ -83,11 +83,11 @@ public class PuppeteerSingleton
         }
         else
         {
-            Program.logger.Warn("Unable to parse value for wait");
+            Program.logger.Warn("Unable to parse value for wait on URL "+url);
         }
     }
 
-    public static async Task TryExec(IPage? page, PreprocessStep step)
+    public static async Task TryExec(string url, IPage? page, PreprocessStep step)
     {
         try
         {
@@ -101,11 +101,11 @@ public class PuppeteerSingleton
         }
         catch (Exception)
         {
-            Program.logger.Warn("Unable to parse script to exec");
+            Program.logger.Warn("Unable to parse script to exec on URL "+url);
         }
     }
 
-    public static async Task TryClick(IPage? page, PreprocessStep step)
+    public static async Task TryClick(string url, IPage? page, PreprocessStep step)
     {
         try
         {
@@ -113,11 +113,11 @@ public class PuppeteerSingleton
         }
         catch (Exception)
         {
-            Program.logger.Warn("Unable to click element");
+            Program.logger.Warn("Unable to click element on URL "+url);
         }
     }
 
-    public static async Task TryType(IPage? page, PreprocessStep step)
+    public static async Task TryType(string url, IPage? page, PreprocessStep step)
     {
         try
         {
@@ -126,7 +126,7 @@ public class PuppeteerSingleton
         }
         catch (Exception)
         {
-            Program.logger.Warn("Unable to type element");
+            Program.logger.Warn("Unable to type element on URL "+url);
         }
     }
 }
