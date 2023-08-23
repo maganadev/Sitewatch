@@ -12,7 +12,7 @@ namespace Sitewatch
     {
         public static Logger logger = LogManager.GetCurrentClassLogger();
         public static SitewatchSettings settings = SitewatchSettings.getSettings();
-        public static List<SitewatchTask> tasks = new List<SitewatchTask>();
+        public static List<SitewatchTaskConfig> tasks = new List<SitewatchTaskConfig>();
 
         public static void Main(string[] args)
         {
@@ -32,9 +32,9 @@ namespace Sitewatch
 
             foreach (var taskFile in taskFiles)
             {
-                SitewatchTaskConfig taskSettings = SitewatchTaskConfig.getSettings(taskFile);
+                SitewatchTaskConfig newTask = SitewatchTaskConfig.getSettings(taskFile);
                 string newName = Safety.TruncateString(taskFile.Name, taskFile.Extension);
-                SitewatchTask newTask = new SitewatchTask(taskSettings, newName);
+                newTask.name = newName;
                 logger.Info("Adding task " + newName);
                 tasks.Add(newTask);
             }
@@ -54,25 +54,25 @@ namespace Sitewatch
             }
         }
 
-        public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTask task)
+        public static async void TimerUp_CheckOnTask(Object source, ElapsedEventArgs e, SitewatchTaskConfig task)
         {
-            List<PreprocessStep> preprocessSteps = task.settings.PreprocessSteps;
-            string pageSource = await PuppeteerSingleton.getPageSource(task.settings.URL, preprocessSteps);
+            List<PreprocessStep> preprocessSteps = task.PreprocessSteps;
+            string pageSource = await PuppeteerSingleton.getPageSource(task.URL, preprocessSteps);
             var doc = HTMLAgility.docFromString(pageSource);
             Dictionary<string, int> oldHTMLChunks = await Safety.getArchivedSiteContent(task.name);
-            Dictionary<string, int> newHTMLChunks = HTMLAgility.QuerySelectorAll(doc, task.settings.QuerySelectorAll_Query);
+            Dictionary<string, int> newHTMLChunks = HTMLAgility.QuerySelectorAll(doc, task.QuerySelectorAll_Query);
 
             HandleComparisons(oldHTMLChunks, newHTMLChunks, task);
 
             //Reset timer
             System.Timers.Timer? oldTimer = task.timer;
-            task.timer = new System.Timers.Timer(task.settings.UpdateCheckIntervalSeconds * 1000.0) { AutoReset = false };
+            task.timer = new System.Timers.Timer(task.UpdateCheckIntervalSeconds * 1000.0) { AutoReset = false };
             task.timer.Elapsed += new ElapsedEventHandler((sender, e) => TimerUp_CheckOnTask(null, null, task));
             task.timer.Start();
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
 
-        public static async void HandleComparisons(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTask task)
+        public static async void HandleComparisons(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTaskConfig task)
         {
             if (await RespondOnSiteChange(oldHTMLChunks, newHTMLChunks, task))
             {
@@ -114,7 +114,7 @@ namespace Sitewatch
             messageToCraft.Append("\n////////Updates:\n\n\n");
             bool didAddContent = false;
 
-            if (task.settings.ShouldWatchForAdditions)
+            if (task.ShouldWatchForAdditions)
             {
                 foreach (string chunk in additions.Keys)
                 {
@@ -125,7 +125,7 @@ namespace Sitewatch
                     didAddContent = true;
                 }
             }
-            if (task.settings.ShouldWatchForDeletions)
+            if (task.ShouldWatchForDeletions)
             {
                 foreach (string chunk in deletions.Keys)
                 {
@@ -136,7 +136,7 @@ namespace Sitewatch
                     didAddContent = true;
                 }
             }
-            if (task.settings.ShouldWatchForNoChanges)
+            if (task.ShouldWatchForNoChanges)
             {
                 foreach (string chunk in noChanges.Keys)
                 {
@@ -155,7 +155,7 @@ namespace Sitewatch
             }
         }
 
-        public static async Task<bool> RespondOnSiteChange(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTask task)
+        public static async Task<bool> RespondOnSiteChange(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTaskConfig task)
         {
             string message = string.Empty;
 

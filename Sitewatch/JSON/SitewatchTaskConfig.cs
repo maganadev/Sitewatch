@@ -1,12 +1,14 @@
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Sitewatch.OOP;
 
 namespace Sitewatch.JSON
 {
     public class SitewatchTaskConfig
     {
+        //Assigned from JSON
         public string URL { get; set; }
         public string QuerySelectorAll_Query { get; set; }
         public List<PreprocessStep> PreprocessSteps { get; set; }
@@ -14,6 +16,14 @@ namespace Sitewatch.JSON
         public bool ShouldWatchForDeletions { get; set; }
         public bool ShouldWatchForNoChanges { get; set; }
         public int UpdateCheckIntervalSeconds { get; set; }
+
+        //Assigned by program
+        [JsonIgnore]
+        public string name = "";
+        [JsonIgnore]
+        public int failCounter = 0;
+        [JsonIgnore]
+        public System.Timers.Timer? timer = new System.Timers.Timer();
 
         public void initDefault()
         {
