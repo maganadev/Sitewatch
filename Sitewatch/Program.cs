@@ -5,6 +5,7 @@ using Sitewatch.OOP;
 using Sitewatch.JSON;
 using System.Timers;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Sitewatch
 {
@@ -48,7 +49,7 @@ namespace Sitewatch
 
         public static void launchTasks()
         {
-            foreach(var task in tasks)
+            foreach (var task in tasks)
             {
                 Task.Run(() => TimerUp_CheckOnTask(null, null, task));
             }
@@ -58,9 +59,14 @@ namespace Sitewatch
         {
             List<PreprocessStep> preprocessSteps = task.PreprocessSteps;
             string pageSource = await PuppeteerSingleton.getPageSource(task.URL, preprocessSteps);
+            await HandleUpdateLogic(task, pageSource);
+        }
+
+        public static async Task HandleUpdateLogic(SitewatchTaskConfig task, string pageSource)
+        {
             var doc = HTMLAgility.docFromString(pageSource);
-            Dictionary<string, int> oldHTMLChunks = await Safety.getArchivedSiteContent(task.name);
-            Dictionary<string, int> newHTMLChunks = HTMLAgility.QuerySelectorAll(doc, task.QuerySelectorAll_Query);
+            Dictionary<string, bool> oldHTMLChunks = await Safety.getArchivedSiteContent(task.name);
+            Dictionary<string, bool> newHTMLChunks = HTMLAgility.QuerySelectorAll(doc, task.QuerySelectorAll_Query);
 
             HandleComparisons(oldHTMLChunks, newHTMLChunks, task);
 
@@ -72,27 +78,27 @@ namespace Sitewatch
             if (oldTimer != null) { oldTimer.Dispose(); }
         }
 
-        public static async void HandleComparisons(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTaskConfig task)
+        public static async void HandleComparisons(Dictionary<string, bool> oldHTMLChunks, Dictionary<string, bool> newHTMLChunks, SitewatchTaskConfig task)
         {
             if (await RespondOnSiteChange(oldHTMLChunks, newHTMLChunks, task))
             {
                 return;
             }
 
-            Dictionary<string,bool> additions = new Dictionary<string,bool>();
-            Dictionary<string,bool> deletions = new Dictionary<string,bool>();
-            Dictionary<string,bool> noChanges = new Dictionary<string,bool>();
-            foreach(var chunk in oldHTMLChunks)
+            Dictionary<string, bool> additions = new Dictionary<string, bool>();
+            Dictionary<string, bool> deletions = new Dictionary<string, bool>();
+            Dictionary<string, bool> noChanges = new Dictionary<string, bool>();
+            foreach (var chunk in oldHTMLChunks)
             {
                 if (!newHTMLChunks.ContainsKey(chunk.Key))
                 {
                     //Was deletion
-                    deletions.TryAdd(chunk.Key,true);
+                    deletions.TryAdd(chunk.Key, true);
                 }
                 else
                 {
                     //Was noChange
-                    noChanges.TryAdd(chunk.Key,true);
+                    noChanges.TryAdd(chunk.Key, true);
                 }
             }
             foreach (var chunk in newHTMLChunks)
@@ -101,11 +107,6 @@ namespace Sitewatch
                 {
                     //Was addition
                     additions.TryAdd(chunk.Key, true);
-                }
-                else
-                {
-                    //Was noChange
-                    noChanges.TryAdd(chunk.Key, true);
                 }
             }
 
@@ -150,12 +151,12 @@ namespace Sitewatch
 
             if (didAddContent)
             {
-                await Safety.setArchivedSiteContent(task.name, newHTMLChunks);
+                await Safety.setArchivedSiteContent(task, additions, noChanges, deletions);
                 await MessageAlerts.sendDiscordWebhookTextFile(settings.DiscordWebhookURL, task.name + ".txt", messageToCraft.ToString());
             }
         }
 
-        public static async Task<bool> RespondOnSiteChange(Dictionary<string, int> oldHTMLChunks, Dictionary<string, int> newHTMLChunks, SitewatchTaskConfig task)
+        public static async Task<bool> RespondOnSiteChange(Dictionary<string, bool> oldHTMLChunks, Dictionary<string, bool> newHTMLChunks, SitewatchTaskConfig task)
         {
             string message = string.Empty;
 
@@ -186,7 +187,9 @@ namespace Sitewatch
 
             if (oldHTMLChunks.Count == 0)
             {
-                await Safety.setArchivedSiteContent(task.name, newHTMLChunks);
+                Dictionary<string, bool> emptyNoChanges = new Dictionary<string, bool>();
+                Dictionary<string, bool> emptyDeletions = new Dictionary<string, bool>();
+                await Safety.setArchivedSiteContent(task, newHTMLChunks, emptyNoChanges, emptyDeletions);
                 message = "Setting initial content for task " + task.name;
                 await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return true;

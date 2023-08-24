@@ -35,6 +35,7 @@ namespace Sitewatch.JSON
             ShouldWatchForDeletions = false;
             ShouldWatchForNoChanges = false;
             UpdateCheckIntervalSeconds = 3600;
+            ShouldForgetDeletions = false;
         }
 
         private void sanitizeInputs()

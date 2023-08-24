@@ -5,27 +5,48 @@ namespace Sitewatch
 {
     public class Safety
     {
-        public static async Task<Dictionary<string, int>> getArchivedSiteContent(string pName)
+        public static async Task<Dictionary<string, bool>> getArchivedSiteContent(string pName)
         {
-            Dictionary<string, int> toReturn = new Dictionary<string, int>();
+            Dictionary<string, bool> toReturn = new Dictionary<string, bool>();
             try
             {
                 DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
                 string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
-                var temp = JsonSerializer.Deserialize<Dictionary<string, int>>(await File.ReadAllTextAsync(filepath));
+                var temp = JsonSerializer.Deserialize<Dictionary<string, bool>>(await File.ReadAllTextAsync(filepath));
                 toReturn = temp != null ? temp : toReturn;
             }
             catch (Exception) { }
             return toReturn;
         }
 
-        public static async Task setArchivedSiteContent(string pName, Dictionary<string, int> pContents)
+        public static async Task setArchivedSiteContent(SitewatchTaskConfig task,
+            Dictionary<string, bool> additions,
+            Dictionary<string, bool> noChanges,
+            Dictionary<string, bool> deletions)
         {
+            //Build our contents
+            Dictionary<string, bool> contents = new Dictionary<string, bool>();
+            foreach(var line in additions)
+            {
+                contents.TryAdd(line.Key, line.Value);
+            }
+            foreach (var line in noChanges)
+            {
+                contents.TryAdd(line.Key, line.Value);
+            }
+            if (!task.ShouldForgetDeletions)
+            {
+                foreach (var line in deletions)
+                {
+                    contents.TryAdd(line.Key, line.Value);
+                }
+            }
+
             try
             {
                 DirectoryInfo tasksDir = Directory.CreateDirectory("LastContents");
-                string filepath = Path.Combine(tasksDir.FullName, pName + ".content");
-                string value = JsonSerializer.Serialize(pContents, new JsonSerializerOptions { WriteIndented = true });
+                string filepath = Path.Combine(tasksDir.FullName, task.name + ".content");
+                string value = JsonSerializer.Serialize(contents, new JsonSerializerOptions { WriteIndented = true });
                 await File.WriteAllTextAsync(filepath, value);
             }
             catch (Exception) { }
