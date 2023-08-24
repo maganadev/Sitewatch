@@ -3,6 +3,7 @@ using NLog.Common;
 using PuppeteerSharp;
 using Sitewatch;
 using Sitewatch.OOP;
+using System.Text;
 
 public class PuppeteerSingleton
 {
@@ -89,19 +90,29 @@ public class PuppeteerSingleton
 
     public static async Task TryExec(string url, IPage? page, PreprocessStep step)
     {
+        string decoded = string.Empty;
         try
         {
-            string decoded = string.Empty;
             byte[] data = Convert.FromBase64String(step.value);
             decoded = System.Text.Encoding.UTF8.GetString(data);
+        }
+        catch (Exception)
+        {
+            Program.logger.Warn("Unable to parse script to exec on URL " + url);
+            return;
+        }
+
+        try
+        {
             if (decoded != string.Empty)
             {
                 await page.EvaluateExpressionAsync(decoded);
             }
         }
-        catch (Exception)
+        catch(Exception)
         {
-            Program.logger.Warn("Unable to parse script to exec on URL "+url);
+            Program.logger.Warn("Error while executing script on URL " + url);
+            return;
         }
     }
 
