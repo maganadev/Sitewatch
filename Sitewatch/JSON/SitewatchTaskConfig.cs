@@ -16,6 +16,7 @@ namespace Sitewatch.JSON
         public bool ShouldWatchForDeletions { get; set; }
         public bool ShouldWatchForNoChanges { get; set; }
         public int UpdateCheckIntervalSeconds { get; set; }
+        public bool ShouldForgetDeletions { get; set; }
 
         //Assigned by program
         [JsonIgnore]
@@ -32,7 +33,7 @@ namespace Sitewatch.JSON
             PreprocessSteps = new List<PreprocessStep>();
             ShouldWatchForAdditions = true;
             ShouldWatchForDeletions = false;
-            ShouldWatchForDeletions = false;
+            ShouldWatchForNoChanges = false;
             UpdateCheckIntervalSeconds = 3600;
         }
 
@@ -64,7 +65,8 @@ namespace Sitewatch.JSON
                 if (temp != null)
                 {
                     temp.sanitizeInputs();
-                    File.WriteAllText(pFileInfo.FullName, JsonSerializer.Serialize(temp, new JsonSerializerOptions {
+                    File.WriteAllText(pFileInfo.FullName, JsonSerializer.Serialize(temp, new JsonSerializerOptions
+                    {
                         WriteIndented = true,
                         IncludeFields = true,
                     }));
