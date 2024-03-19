@@ -22,8 +22,9 @@ namespace Sitewatch
             AddTasks();
             launchTasks();
 
-            //Sleep main thread in an endless loop
-            while (true) { Thread.Sleep(1000); }
+            //Sleep main thread
+            Semaphore semaphore = new Semaphore(0,1);
+            semaphore.WaitOne();
         }
 
         public static void AddTasks()
