@@ -36,15 +36,25 @@ public class PuppeteerSingleton
         string toReturn = string.Empty;
         pool.WaitOne();
 
+        //Create our page
+        IPage page = null;
+
+        //Get content
         try
         {
-            var page = await browser.NewPageAsync();
+            page = await browser.NewPageAsync();
             await page.GoToAsync(url);
             for (int i = 0; i < preprocessSteps.Count; i++)
             {
                 await ExecuteStep(url, page, preprocessSteps[i]);
             }
             toReturn = await page.GetContentAsync();
+        }
+        catch (Exception) { }
+
+        //Close Page
+        try
+        {
             await page.CloseAsync();
         }
         catch (Exception) { }
