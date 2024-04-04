@@ -1,6 +1,5 @@
 ﻿#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 
-using NLog;
 using Sitewatch.OOP;
 using Sitewatch.JSON;
 using System.Timers;
@@ -11,13 +10,11 @@ namespace Sitewatch
 {
     public class Program
     {
-        public static Logger logger = LogManager.GetCurrentClassLogger();
         public static SitewatchSettings settings = SitewatchSettings.getSettings();
         public static List<SitewatchTaskConfig> tasks = new List<SitewatchTaskConfig>();
 
         public static void Main(string[] args)
         {
-            applyLogConfig();
             PuppeteerSingleton.init().GetAwaiter().GetResult();
             AddTasks();
             launchTasks();
@@ -197,16 +194,6 @@ namespace Sitewatch
             }
 
             return false;
-        }
-
-        public static void applyLogConfig()
-        {
-            var config = new NLog.Config.LoggingConfiguration();
-            var logfile = new NLog.Targets.FileTarget("logfile") { FileName = "log.txt" };
-            var logconsole = new NLog.Targets.ConsoleTarget("logconsole");
-            config.AddRule(LogLevel.Info, LogLevel.Fatal, logconsole);
-            config.AddRule(LogLevel.Info, LogLevel.Fatal, logfile);
-            NLog.LogManager.Configuration = config;
         }
 
         public static DirectoryInfo getTaskDirectory()

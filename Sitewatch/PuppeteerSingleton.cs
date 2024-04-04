@@ -1,5 +1,4 @@
 ﻿#pragma warning disable CS8602 // Dereference of a possibly null reference.
-using NLog.Common;
 using PuppeteerSharp;
 using Sitewatch;
 using Sitewatch.OOP;
