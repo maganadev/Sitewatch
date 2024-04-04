@@ -9,7 +9,7 @@ public class MessageAlerts
 {
     public static async Task sendDiscordWebhookMessage(string pURL, string message)
     {
-        Program.logger.Info(message);
+        Console.WriteLine(message);
         try
         {
             using (HttpClient client = new HttpClient())
@@ -21,13 +21,13 @@ public class MessageAlerts
         }
         catch (Exception)
         {
-            Program.logger.Warn("Could not send message to Discord Webhook");
+            Console.WriteLine("Could not send message to Discord Webhook");
         }
     }
 
     public static async Task sendDiscordWebhookTextFile(string pURL, string filename, string content)
     {
-        Program.logger.Info(content);
+        Console.WriteLine(content);
         try
         {
             using (HttpClient client = new HttpClient())
@@ -41,7 +41,7 @@ public class MessageAlerts
         }
         catch (Exception)
         {
-            Program.logger.Warn("Could not send text file to Discord Webhook");
+            Console.WriteLine("Could not send text file to Discord Webhook");
         }
     }
 }

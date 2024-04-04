@@ -80,7 +80,7 @@ public class PuppeteerSingleton
                 await TryType(url, page, step);
                 break;
             default:
-                Program.logger.Warn("A preprocessing step action was not recognized");
+                Console.WriteLine("A preprocessing step action was not recognized");
                 break;
         }
     }
@@ -94,7 +94,7 @@ public class PuppeteerSingleton
         }
         else
         {
-            Program.logger.Warn("Unable to parse value for wait on URL "+url);
+            Console.WriteLine("Unable to parse value for wait on URL " + url);
         }
     }
 
@@ -108,7 +108,7 @@ public class PuppeteerSingleton
         }
         catch (Exception)
         {
-            Program.logger.Warn("Unable to parse script to exec on URL " + url);
+            Console.WriteLine("Unable to parse script to exec on URL " + url);
             return;
         }
 
@@ -119,9 +119,9 @@ public class PuppeteerSingleton
                 await page.EvaluateExpressionAsync(decoded);
             }
         }
-        catch(Exception)
+        catch (Exception)
         {
-            Program.logger.Warn("Error while executing script on URL " + url);
+            Console.WriteLine("Error while executing script on URL " + url);
             return;
         }
     }
@@ -134,7 +134,7 @@ public class PuppeteerSingleton
         }
         catch (Exception)
         {
-            Program.logger.Warn("Unable to click element on URL "+url);
+            Console.WriteLine("Unable to click element on URL " + url);
         }
     }
 
@@ -147,7 +147,7 @@ public class PuppeteerSingleton
         }
         catch (Exception)
         {
-            Program.logger.Warn("Unable to type element on URL "+url);
+            Console.WriteLine("Unable to type element on URL " + url);
         }
     }
 }

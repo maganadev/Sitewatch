@@ -29,19 +29,35 @@ namespace Sitewatch.JSON
             const string settingsPath = "settings.json";
             var toReturn = new SitewatchSettings();
             toReturn.initDefault();
+
+            bool fileExists = false;
             try
             {
-                if (File.Exists(settingsPath))
+                fileExists = File.Exists(settingsPath);
+            }
+            catch (Exception) { }
+
+            if (fileExists)
+            {
+                try
                 {
-                    SitewatchSettings? temp = JsonSerializer.Deserialize<SitewatchSettings>(File.ReadAllText(settingsPath));
-                    toReturn = temp != null ? temp : toReturn;
+                    SitewatchSettings temp = JsonSerializer.Deserialize<SitewatchSettings>(File.ReadAllText(settingsPath));
                 }
-                else
+                catch (Exception)
+                {
+                    Console.WriteLine("Failed to load JSON for " + settingsPath);
+                }
+            }
+            else
+            {
+                try
                 {
                     File.WriteAllText(settingsPath, JsonSerializer.Serialize<SitewatchSettings>(toReturn, JsonSerializerOptions.Default));
                 }
+                catch (Exception) { }
             }
-            catch (Exception) { }
+
+            //Sanitize and return
             toReturn.sanitizeInputs();
             return toReturn;
         }

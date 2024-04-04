@@ -23,7 +23,7 @@ namespace Sitewatch
             launchTasks();
 
             //Sleep main thread
-            Semaphore semaphore = new Semaphore(0,1);
+            Semaphore semaphore = new Semaphore(0, 1);
             semaphore.WaitOne();
         }
 
@@ -37,13 +37,13 @@ namespace Sitewatch
                 SitewatchTaskConfig newTask = SitewatchTaskConfig.getSettings(taskFile);
                 string newName = Safety.TruncateString(taskFile.Name, taskFile.Extension);
                 newTask.name = newName;
-                logger.Info("Adding task " + newName);
+                Console.WriteLine("Adding task " + newName);
                 tasks.Add(newTask);
             }
 
             if (tasks.Count == 0)
             {
-                logger.Error("No tasks added, exiting");
+                Console.WriteLine("No tasks added, exiting");
                 Environment.Exit(0);
             }
         }
@@ -165,7 +165,7 @@ namespace Sitewatch
             if (newHTMLChunks.Count == 0)
             {
                 task.failCounter++;
-                logger.Info("Failed to access the site for task " + task.name);
+                Console.WriteLine("Failed to access the site for task " + task.name);
 
                 if (task.failCounter == 5)
                 {
@@ -224,7 +224,7 @@ namespace Sitewatch
             }
             catch (Exception)
             {
-                logger.Error("Unable to access Task folder, exiting");
+                Console.WriteLine("Unable to access Task folder, exiting");
                 Environment.Exit(0);
                 return null;
             }
