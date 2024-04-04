@@ -27,7 +27,7 @@ namespace Sitewatch.JSON
         public static SitewatchSettings getSettings()
         {
             const string settingsPath = "settings.json";
-            var toReturn = new SitewatchSettings();
+            SitewatchSettings toReturn = new SitewatchSettings();
             toReturn.initDefault();
 
             bool fileExists = false;
@@ -42,6 +42,7 @@ namespace Sitewatch.JSON
                 try
                 {
                     SitewatchSettings temp = JsonSerializer.Deserialize<SitewatchSettings>(File.ReadAllText(settingsPath));
+                    toReturn = temp;
                 }
                 catch (Exception)
                 {
