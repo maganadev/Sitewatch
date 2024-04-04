@@ -14,7 +14,7 @@ public class MessageAlerts
         {
             using (HttpClient client = new HttpClient())
             {
-                client.Timeout = TimeSpan.FromSeconds(5);
+                client.Timeout = TimeSpan.FromSeconds(30);
                 await client.PostAsync(pURL, new StringContent("{\"content\":\"" + message + "\"}", Encoding.UTF8, "application/json"));
                 client.Dispose();
             }

@@ -7,7 +7,7 @@ using System.Text;
 public class PuppeteerSingleton
 {
     private static IBrowser? browser = null;
-    private static Semaphore pool = new Semaphore(4, 4);
+    private static Semaphore pool = new Semaphore(2, 2);
 
     public static async Task init()
     {
