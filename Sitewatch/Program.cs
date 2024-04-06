@@ -154,45 +154,55 @@ namespace Sitewatch
             }
         }
 
+        /// Return value: Whether or not we should return early due to a failure
         public static async Task<bool> RespondOnSiteChange(Dictionary<string, bool> oldHTMLChunks, Dictionary<string, bool> newHTMLChunks, SitewatchTaskConfig task)
         {
-            string message = string.Empty;
-
             //Check for failure
             if (newHTMLChunks.Count == 0)
             {
                 task.failCounter++;
                 Console.WriteLine("Failed to access the site for task " + task.name);
 
+                //If we have failed 5 times in a row
                 if (task.failCounter == 5)
                 {
-                    message = "Task " + task.name + " has failed 5 times. Check to see what's up.";
+                    string message = "Task " + task.name + " has failed 5 times. Check to see what's up.";
                     await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 }
 
+                //If we failed the first time we ever checked
+                if (!task.hasBeenChecked)
+                {
+                    string message = "Startup: Task " + task.name + " was unable to be checked.";
+                    await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
+                }
+
+                //Failure, return true
                 return true;
             }
-            else
-            {
-                if (task.failCounter >= 5)
-                {
-                    message = "Task " + task.name + " has succeeded and come back to life.";
-                    await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
-                }
 
-                task.failCounter = 0;
+            //Check for revival
+            if (task.failCounter >= 5)
+            {
+                string message = "Task " + task.name + " has succeeded and come back to life.";
+                await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
             }
 
+            //Reset fail counter
+            task.failCounter = 0;
+
+            //If this was the first time we checked this website
             if (oldHTMLChunks.Count == 0)
             {
                 Dictionary<string, bool> emptyNoChanges = new Dictionary<string, bool>();
                 Dictionary<string, bool> emptyDeletions = new Dictionary<string, bool>();
                 await Safety.setArchivedSiteContent(task, newHTMLChunks, emptyNoChanges, emptyDeletions);
-                message = "Setting initial content for task " + task.name;
+                string message = "Setting initial content for task " + task.name;
                 await MessageAlerts.sendDiscordWebhookMessage(settings.DiscordWebhookURL, message);
                 return true;
             }
 
+            //Success, return false
             return false;
         }
 

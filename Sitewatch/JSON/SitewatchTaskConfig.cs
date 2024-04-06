@@ -24,6 +24,8 @@ namespace Sitewatch.JSON
         [JsonIgnore]
         public int failCounter = 0;
         [JsonIgnore]
+        public bool hasBeenChecked = false;
+        [JsonIgnore]
         public System.Timers.Timer? timer = new System.Timers.Timer();
 
         public void initDefault()

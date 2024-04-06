@@ -42,11 +42,14 @@ namespace Sitewatch.JSON
                 try
                 {
                     SitewatchSettings temp = JsonSerializer.Deserialize<SitewatchSettings>(File.ReadAllText(settingsPath));
-                    toReturn = temp;
+                    if(temp != null)
+                    {
+                        toReturn = temp;
+                    }
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine("Failed to load JSON for " + settingsPath);
+                    Console.WriteLine("Failed to load JSON for settings file at " + settingsPath);
                 }
             }
             else
